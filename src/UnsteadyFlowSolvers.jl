@@ -24,6 +24,7 @@ import LaTeXStrings: @L_str
 
 #For use in development and debugging
 import Revise
+using Printf
 
 export
     # kinematics types and funtions
@@ -59,6 +60,7 @@ export
     find_tstep,
     simpleInterp,
     cleanWrite,
+    calc_edgeVel,
 
     #2D low-order solver methods
     lautat,
@@ -68,7 +70,10 @@ export
 
     # 2D plot output functions
     makeForcePlots2D,
-    makeVortPlots2D
+    makeVortPlots2D,
+
+    # IBL methods
+    IBLCoupled
 
 ### source files
 
@@ -89,5 +94,12 @@ include("lowOrder2D/postprocess.jl")         # postprocessing functions
 
 # 2D plotting functions
 include("plots/plots2D.jl")
+
+#IBLCoupled methods
+include("sr2/IBLCoupled.jl")
+include("sr2/IBLFV.jl")
+include("sr2/correlate.jl")
+
+
 
 end
