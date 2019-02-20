@@ -229,3 +229,14 @@ function sepeartionJ(lamb1::Array{Float64,1}, lamb2::Array{Float64,1}, dt::Float
     return J1Sep, J2Sep
 
 end
+
+
+function initDt(w::Array{Float64,2}, U::Array{Float64,1})
+
+    del , E, FF ,B, S, dfde = correlate(w)
+    lamb1 ,lamb2 = eigenlamb(U, dfde, FF, w)
+    dt = calc_Dt(lamb1 ,lamb2, 0.8, dx)
+
+    return dt
+
+end

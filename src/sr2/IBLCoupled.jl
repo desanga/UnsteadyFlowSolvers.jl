@@ -50,7 +50,7 @@ function IBLCoupled(surf::TwoDSurf, curfield::TwoDFlowField, ncell::Int64, nstep
             qu0 = qu
         end
         w0u, Uu,  Utu, Uxu = inviscidInterface(del, E, qu, qu0, dt)
-        #w0l, Ul, Utl, Uxl = inviscidInterface(ql, dt)
+        
 
         while tv < t
 
