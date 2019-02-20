@@ -30,10 +30,10 @@ function FVMIBL(w::Array{Float64,2}, U::Array{Float64,1}, Ut::Array{Float64,1}, 
 
     z = RHSSource(U,B, del,Ut, Ux, FF, E, S)
 
-    #dtL = calc_Dt(UipL, dfdeipL, FFipL, wipL, 0.8, dx)
-    #dtR = calc_Dt(UipR, dfdeipR, FFipR, wipR, 0.8, dx)
+    dtL = calc_Dt(UipL, dfdeipL, FFipL, wipL, 0.8, dx)
+    dtR = calc_Dt(UipR, dfdeipR, FFipR, wipR, 0.8, dx)
 
-    #dt = max(dtL,dtR)
+    dt = max(dtL,dtR)
 
     j1, j2 = sepeartionJ(lamb1, lamb2, dt, dx)
 
@@ -51,7 +51,7 @@ function init(n)
     E = E_init
     B = 131.9*E_init.^3 - 167.32*E_init.^2 + 76.642.*E_init .- 11.068
     del = sqrt.(B.*0.005);
-    F = 4.8274.*E_init.^4 - 5.9816*E_init.^3 + 4.0274*E_init.^2 + 0.23247.*E_init .+ 0.15174;
+    F= 4.8274.*E_init.^4 - 5.9816*E_init.^3 + 4.0274*E_init.^2 + 0.23247.*E_init .+ 0.15174;
 
     return del, E, F ,B
 end
@@ -155,14 +155,6 @@ end
 function RHSSource(U::Array{Float64,1} ,B::Array{Float64,1}, del::Array{Float64,1},Ut::Array{Float64,1}, Ux::Array{Float64,1}, FF::Array{Float64,1}, E::Array{Float64,1}, S::Array{Float64,1} )
 
     # the source terms of the system of equations
-
-    println(" size of B ", length(B))
-    println(" size of del ", length(del))
-    println(" size of E ", length(E))
-    println(" size of B ", length(B))
-    println(" size of Ux ", length(Ux))
-    println(" size of Ut ", length(Ut))
-
     z1 = B./(2.0*del) .- del.* (Ut./U) .- (E.+ 1.0).*del.*Ux
     z2 = S./del .- 2.0*E.*del.* (Ut./U) .- 2.0*FF.*del.*Ux
     z = hcat(z1,z2)
