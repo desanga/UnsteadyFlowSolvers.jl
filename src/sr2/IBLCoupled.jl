@@ -36,33 +36,40 @@ function IBLCoupled(surf::TwoDSurf, curfield::TwoDFlowField, ncell::Int64, nstep
 
     # initial momentum and energy shape factors
 
-    del, E, x = initViscous(ncell-1)
+    del, E, x, qu, ql, qu0, ql0 = initViscous(ncell)
+
 
     # time loop
     for istep = 1:nsteps
         t = t + dt
-        mat, surf, curfield = lautat(surf, curfield, t, dt, istep, startflag, writeflag, writeInterval, delvort)
+        mat, surf, curfield = lautat(surf, curfield, t, dt, istep, writeArray, mat, startflag, writeflag, writeInterval, delvort)
         qu, ql = calc_edgeVel(surf, [curfield.u[1], curfield.w[1]])
-        w0u, Uu,  Utu, Uxu = inviscidInterface(qu, dt)
+        if qu0 == zeros(ncell-1)
+            #println("Inside the validation check")
+            qu0 = qu
+        end
+        w0u, Uu,  Utu, Uxu = inviscidInterface(del, E, qu, qu0, dt)
         #w0l, Ul, Utl, Uxl = inviscidInterface(ql, dt)
 
         while tv < t
 
             w, dtv, j1 ,j2 = FVMIBL(w0u, Uu, Utu, Uxu);
-            ww = w
-            del = ww[:,1]
-            E = (ww[:,2]./ww[:,1]) .- 1.0
+            del = w[:,1]
+            E = (w[:,2]./w[:,1]) .- 1.0
 
         # the plots of del and E
 
         #display(plot(x/pi,[del, E], xticks = 0:0.1:1, layout=(2,1), legend = false))
 
         # convergence of the Eigen-value
-            #p1 = plot(x[1:end-1]/pi,j1)
-            #p2 = plot(x[1:end-1]/pi,j2)
-            #p3 = plot(x/pi,del)
-            #p4 = plot(x/pi,E)
-            #display(plot(p1, p2, p3, p4, xticks = 0:0.1:1, layout=(2,2), legend = false))
+
+            println("Length of j1 ",length(j1))
+            println("Length of x ", length(x))
+            p1 = plot(x[2:end-1]/pi,j1)
+            p2 = plot(x[2:end-1]/pi,j2)
+            p3 = plot(x/pi,del)
+            p4 = plot(x/pi,E)
+            display(plot(p1, p2, p3, p4, xticks = 0:0.1:1, layout=(2,2), legend = false))
 
         #display(plot(sep, xticks = 0:10:200, legend = false))
             #sleep(0.05)
@@ -75,6 +82,8 @@ function IBLCoupled(surf::TwoDSurf, curfield::TwoDFlowField, ncell::Int64, nstep
 
             sols = w
         end
+
+        qu0 = qu;
     end
 
     mat = mat'
@@ -88,7 +97,7 @@ mat, surf, curfield
 
 end
 
-function lautat(surf::TwoDSurf, curfield::TwoDFlowField, t::Float64, dt::Float64, istep::Int64, startflag = 0, writeflag = 0, writeInterval = 1000., delvort = delNone(); maxwrite = 50, nround=6, wakerollup=1)
+function lautat(surf::TwoDSurf, curfield::TwoDFlowField, t::Float64, dt::Float64, istep::Int64, writeArray::Array{Int64}, mat, startflag = 0, writeflag = 0, writeInterval = 1000., delvort = delNone(); maxwrite = 50, nround=6, wakerollup=1)
 
 
         #Update kinematic parameters
@@ -143,27 +152,38 @@ function lautat(surf::TwoDSurf, curfield::TwoDFlowField, t::Float64, dt::Float64
         mat = hcat(mat,[t, surf.kinem.alpha, surf.kinem.h, surf.kinem.u, surf.a0[1], cl, cd, cm])
 
         return  mat, surf, curfield
-    end
+end
 
-function inviscidInterface(del::Array{Float64,1}, E::Array{Float64,1}, q::Array{Float64,1}, dt::Float64)
 
-    n =length(q)
+function inviscidInterface(del::Array{Float64,1}, E::Array{Float64,1}, q::Array{Float64,1}, qu0::Array{Float64,1}, dt::Float64)
+
+
     #del, E, F ,B = init(n-1)
 
-
-    U0 = q[1:n]
+    #m = length(q) -1
+    U0 = q[2:end]
     #x =x[1:n]
-    U0 = U0[1:n]
+    #U0 = U0[1:n]
 
-    Ut = temporalDerivates(q, qu0, dt)
-    Ux = spatialDerivates(q)
+
+
+
+
+    U00 = qu0[2:end]
+
+    #println("finding the length",length(U00))
+    #println("finding the m ", m)
+
+    Ut = temporalDerivates(U0, U00, dt)
+
+    Ux = spatialDerivates([q[1];U0])
 
     w1 = del
     w2 = del.*(E.+1.0)
     w0 = hcat(w1,w2)
 
 
-    return U0, Ut, Ux
+    return w0, U0, Ut, Ux
 end
 
 function spatialDerivates(qu::Array{Float64,1})
@@ -171,26 +191,25 @@ function spatialDerivates(qu::Array{Float64,1})
     n = length(qu)
     dx = 1.0/n
 
-    dudx = qu[2:end]-qu[1:end-1]./dx
+    dudx = (qu[2:end]-qu[1:end-1])./dx
 
     return dudx
 end
 
 function temporalDerivates(qu::Array{Float64,1}, qu0::Array{Float64}, dt::Float64)
 
-    return qu[2:end]-qu0[2:end]./dt
-
 end
 
 function initViscous(ncell::Int64)
 
+    m = ncell - 1
+    del, E, F ,B = init(m)
+    x = collect(0:m)./(m)
+    qu =  zeros(m)
+    ql =  zeros(m)
+    qu0 = zeros(m)
+    ql0 = zeros(m)
 
-    del, E = init(ncell-1)
-    x = collect(0:ncell-1)./(ncell-1)
-
-
-    return del, E, x
-
-
+    return del, E, x, qu, ql, qu0, ql0
 
 end
