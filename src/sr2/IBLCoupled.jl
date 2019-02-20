@@ -50,7 +50,7 @@ function IBLCoupled(surf::TwoDSurf, curfield::TwoDFlowField, ncell::Int64, nstep
             qu0 = qu
         end
         w0u, Uu,  Utu, Uxu = inviscidInterface(del, E, qu, qu0, dt)
-        
+
 
         while tv < t
 
@@ -58,6 +58,7 @@ function IBLCoupled(surf::TwoDSurf, curfield::TwoDFlowField, ncell::Int64, nstep
             del = w[:,1]
             E = (w[:,2]./w[:,1]) .- 1.0
 
+            dtv = adjustTimeStep(dt, dtv)
         # the plots of del and E
 
         #display(plot(x/pi,[del, E], xticks = 0:0.1:1, layout=(2,1), legend = false))
@@ -197,8 +198,6 @@ end
 
 function temporalDerivates(qu::Array{Float64,1}, qu0::Array{Float64}, dt::Float64)
 
-
-
  return (qu - qu0)./dt
 
 end
@@ -214,5 +213,16 @@ function initViscous(ncell::Int64)
     ql0 = zeros(m)
 
     return del, E, x, qu, ql, qu0, ql0
+
+end
+
+
+function adjustTimeStep(dt::Float64, dtv::Float64)
+
+
+
+return dt/(floor(dt/dtv))
+
+
 
 end
