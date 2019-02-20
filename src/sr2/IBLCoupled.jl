@@ -37,8 +37,9 @@ function IBLCoupled(surf::TwoDSurf, curfield::TwoDFlowField, ncell::Int64, nstep
     # initial momentum and energy shape factors
 
     del, E, x, qu, ql, qu0, ql0 = initViscous(ncell)
+    dt =  initStepSize(surf, curfield, t, dt, 0, writeArray, mat, startflag, writeflag, writeInterval, delvort)
 
-
+    println("Determining Intitial step size ", dt)
     # time loop
     for istep = 1:nsteps
         t = t + dt
@@ -52,13 +53,13 @@ function IBLCoupled(surf::TwoDSurf, curfield::TwoDFlowField, ncell::Int64, nstep
         w0u, Uu,  Utu, Uxu = inviscidInterface(del, E, qu, qu0, dt)
 
 
-        while tv < t
+        while tv <= t
 
             w, dtv, j1 ,j2 = FVMIBL(w0u, Uu, Utu, Uxu);
             del = w[:,1]
             E = (w[:,2]./w[:,1]) .- 1.0
 
-            dtv = adjustTimeStep(dt, dtv)
+            dt = dtv
         # the plots of del and E
 
         #display(plot(x/pi,[del, E], xticks = 0:0.1:1, layout=(2,1), legend = false))
@@ -141,6 +142,8 @@ function lautat(surf::TwoDSurf, curfield::TwoDFlowField, t::Float64, dt::Float64
         cl, cd, cm = calc_forces(surf, [curfield.u[1], curfield.w[1]])
 
         # write flow details if required
+
+
         if writeflag == 1
             if istep in writeArray
                 dirname = "$(round(t, sigdigits=nround))"
@@ -149,7 +152,9 @@ function lautat(surf::TwoDSurf, curfield::TwoDFlowField, t::Float64, dt::Float64
         end
 
         # for writing in resultsSummary
+
         mat = hcat(mat,[t, surf.kinem.alpha, surf.kinem.h, surf.kinem.u, surf.a0[1], cl, cd, cm])
+
 
         return  mat, surf, curfield
 end
@@ -164,10 +169,6 @@ function inviscidInterface(del::Array{Float64,1}, E::Array{Float64,1}, q::Array{
     U0 = q[2:end]
     #x =x[1:n]
     #U0 = U0[1:n]
-
-
-
-
 
     U00 = qu0[2:end]
 
@@ -223,6 +224,19 @@ function adjustTimeStep(dt::Float64, dtv::Float64)
 
 return dt/(floor(dt/dtv))
 
+
+
+end
+
+
+function initStepSize(surf::TwoDSurf, curfield::TwoDFlowField, t::Float64, dt::Float64, istep::Int64, writeArray::Array{Int64}, del::Array{Float64,1}, E::Array{Float64,1}, mat, startflag = 0, writeflag = 0, writeInterval = 1000., delvort = delNone(); maxwrite = 50, nround=6, wakerollup=1)
+
+    mat, surf, curfield = lautat(surf, curfield, t, dt, istep, writeArray, mat, startflag, writeflag, writeInterval, delvort)
+    qu, ql = calc_edgeVel(surf, [curfield.u[1], curfield.w[1]])
+    w0u, Uu,  Utu, Uxu = inviscidInterface(del, E, qu, qu, dt)
+    dt = initDt(w0u, Uu)
+
+    return dt
 
 
 end
