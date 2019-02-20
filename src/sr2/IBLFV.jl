@@ -156,12 +156,12 @@ function RHSSource(U::Array{Float64,1} ,B::Array{Float64,1}, del::Array{Float64,
 
     # the source terms of the system of equations
 
-    println(" size of B ", length(B))
-    println(" size of del ", length(del))
-    println(" size of E ", length(E))
-    println(" size of B ", length(B))
-    println(" size of Ux ", length(Ux))
-    println(" size of Ut ", length(Ut))
+    #println(" size of B ", length(B))
+    #println(" size of del ", length(del))
+    #println(" size of E ", length(E))
+    #println(" size of B ", length(B))
+    #println(" size of Ux ", length(Ux))
+    #println(" size of Ut ", length(Ut))
 
     z1 = B./(2.0*del) .- del.* (Ut./U) .- (E.+ 1.0).*del.*Ux
     z2 = S./del .- 2.0*E.*del.* (Ut./U) .- 2.0*FF.*del.*Ux

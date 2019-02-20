@@ -42,10 +42,11 @@ function IBLCoupled(surf::TwoDSurf, curfield::TwoDFlowField, ncell::Int64, nstep
     # time loop
     for istep = 1:nsteps
         t = t + dt
+        @printf(" Main time loop %1.3f\n", t);
         mat, surf, curfield = lautat(surf, curfield, t, dt, istep, writeArray, mat, startflag, writeflag, writeInterval, delvort)
         qu, ql = calc_edgeVel(surf, [curfield.u[1], curfield.w[1]])
         if qu0 == zeros(ncell-1)
-            #println("Inside the validation check")
+            println("Inside the validation check at", t )
             qu0 = qu
         end
         w0u, Uu,  Utu, Uxu = inviscidInterface(del, E, qu, qu0, dt)
@@ -63,8 +64,6 @@ function IBLCoupled(surf::TwoDSurf, curfield::TwoDFlowField, ncell::Int64, nstep
 
         # convergence of the Eigen-value
 
-            println("Length of j1 ",length(j1))
-            println("Length of x ", length(x))
             #p1 = plot(x[2:end-1]/pi,j1)
             #p2 = plot(x[2:end-1]/pi,j2)
             #p3 = plot(x/pi,del)
