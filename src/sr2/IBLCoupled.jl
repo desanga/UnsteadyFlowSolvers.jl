@@ -1,3 +1,4 @@
+using PyPlot
 function IBLCoupled(surf::TwoDSurf, curfield::TwoDFlowField, ncell::Int64, nsteps::Int64 = 500, dtstar::Float64 = 0.015, startflag = 0, writeflag = 0, writeInterval = 1000., delvort = delNone(); maxwrite = 50, nround=6, wakerollup=1)
     # If a restart directory is provided, read in the simulation data
     if startflag == 0
@@ -37,13 +38,17 @@ function IBLCoupled(surf::TwoDSurf, curfield::TwoDFlowField, ncell::Int64, nstep
     # initial momentum and energy shape factors
 
     del, E, x, qu, ql, qu0, ql0 = initViscous(ncell)
-    dt =  initStepSize(surf, curfield, t, dt, 0, writeArray, mat, startflag, writeflag, writeInterval, delvort)
-
     println("Determining Intitial step size ", dt)
+
+    dt =  initStepSize(surf, curfield, t, dt, 0, writeArray, del, E, mat, startflag, writeflag, writeInterval, delvort)
+
+
+    figure()
+    interactivePlot(del, E, x, true)
     # time loop
     for istep = 1:nsteps
         t = t + dt
-        @printf(" Main time loop %1.3f\n", t);
+        #@printf(" Main time loop %1.3f\n", t);
         mat, surf, curfield = lautat(surf, curfield, t, dt, istep, writeArray, mat, startflag, writeflag, writeInterval, delvort)
         qu, ql = calc_edgeVel(surf, [curfield.u[1], curfield.w[1]])
         if qu0 == zeros(ncell-1)
@@ -52,14 +57,11 @@ function IBLCoupled(surf::TwoDSurf, curfield::TwoDFlowField, ncell::Int64, nstep
         end
         w0u, Uu,  Utu, Uxu = inviscidInterface(del, E, qu, qu0, dt)
 
+        w, dt, j1 ,j2 = FVMIBL(w0u, Uu, Utu, Uxu);
+        del = w[:,1]
+        E = (w[:,2]./w[:,1]) .- 1.0
 
-        while tv <= t
-
-            w, dtv, j1 ,j2 = FVMIBL(w0u, Uu, Utu, Uxu);
-            del = w[:,1]
-            E = (w[:,2]./w[:,1]) .- 1.0
-
-            dt = dtv
+        #dt = dtv
         # the plots of del and E
 
         #display(plot(x/pi,[del, E], xticks = 0:0.1:1, layout=(2,1), legend = false))
@@ -74,16 +76,15 @@ function IBLCoupled(surf::TwoDSurf, curfield::TwoDFlowField, ncell::Int64, nstep
 
         #display(plot(sep, xticks = 0:10:200, legend = false))
             #sleep(0.05)
-            w0u = w;
+        interactivePlot(del, E, x, true)
+        w0u = w;
 
-            @printf("viscous Time :%1.10f , viscous Time step size %1.10f \n", tv, dtv);
+        @printf("viscous Time :%1.10f , viscous Time step size %1.10f \n", t, dt);
         #map(x -> @sprintf("Seperation occure at :%1.10f  \n",x), xtrunc[seperation]./pi);
 
-            tv = tv + dtv
+            #tv = tv + dtv
 
-            sols = w
-        end
-
+            #sols = w
         qu0 = qu;
     end
 
@@ -228,7 +229,6 @@ return dt/(floor(dt/dtv))
 
 end
 
-
 function initStepSize(surf::TwoDSurf, curfield::TwoDFlowField, t::Float64, dt::Float64, istep::Int64, writeArray::Array{Int64}, del::Array{Float64,1}, E::Array{Float64,1}, mat, startflag = 0, writeflag = 0, writeInterval = 1000., delvort = delNone(); maxwrite = 50, nround=6, wakerollup=1)
 
     mat, surf, curfield = lautat(surf, curfield, t, dt, istep, writeArray, mat, startflag, writeflag, writeInterval, delvort)
@@ -238,5 +238,26 @@ function initStepSize(surf::TwoDSurf, curfield::TwoDFlowField, t::Float64, dt::F
 
     return dt
 
+
+end
+
+
+function interactivePlot(del::Array{Float64,1}, E::Array{Float64,1}, x::Array{Float64,1}, disp::Bool)
+
+ if(disp)
+
+     PyPlot.clf()
+
+    subplot(211)
+    axis([0,1, (minimum(del)-0.1), (maximum(del)]+0.1))
+    plot(x[1:end-1],del)
+
+    subplot(212)
+    axis([0, 1, (minimum(E)-0.1), (minimum(E)+0.1)])
+    plot(x[1:end-1],E)
+    show()
+    pause(0.01)
+
+end
 
 end

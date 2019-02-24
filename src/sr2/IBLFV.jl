@@ -235,6 +235,8 @@ function initDt(w::Array{Float64,2}, U::Array{Float64,1})
 
     del , E, FF ,B, S, dfde = correlate(w)
     lamb1 ,lamb2 = eigenlamb(U, dfde, FF, w)
+    n = Int(length(w)/2)
+    dx = Float64(1.0/n)
     dt = calc_Dt(lamb1 ,lamb2, 0.8, dx)
 
     return dt
