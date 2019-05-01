@@ -4,9 +4,9 @@ module UnsteadyFlowSolvers
 
 import Dierckx: Spline1D, derivative, evaluate, roots
 
-import ForwardDiff
+using ForwardDiff
 
-import DelimitedFiles
+import DelimitedFiles: writedlm, readdlm
 
 import Serialization
 
@@ -28,6 +28,7 @@ import Revise
 using Printf
 
 using DataStructures
+
 using Interpolations
 
 export
@@ -79,8 +80,24 @@ export
 
     # 2D postprocessing functions
     calc_edgeVel,
+    
+    #IBLThickCoupled,
+    TwoDSurfThickBL,
+    transpCoupled,
+    iterIBLsolve,
+    transpTogether,
+    blLagrangian,
+    initDelE,
+    FVMIBLorig,
+    smoothEdges,
+    dtfunFVM,
+    dtfunjac,
+    transpTogetherWake,
+    transpSimul,
+    transResidual,
+    FVMIBLgridvar,
+    IBLshed
 
-    IBLThickCoupled
 
 
 ### source files
@@ -90,7 +107,6 @@ include("kinem.jl")
 
 # utility functions
 include("utils.jl")
-
 # vortex count control utility
 include("delVort.jl")
 
@@ -107,13 +123,22 @@ include("thick2D/solvers.jl")             # solver methods
 include("thick2D/postprocess.jl")         # postprocessing functions
 
 
+# low-order 2D thick IBL solvers
+include("thickCoupled/typedefs.jl")            # type definitions
+include("thickCoupled/calcs.jl")               # calculation functions
+include("thickCoupled/solvers.jl")             # solver methods
+include("thickCoupled/postprocess.jl")         # postprocessing functions
+include("thickCoupled/blLag.jl")         # postprocessing functions
+
+
 # 2D plotting functions
 include("plots/plots2D.jl")
 
 # IBL thick-coupled functions
-include("thickCoupled/IBLThickCoupled.jl")
-include("thickCoupled/IBLFV.jl")
-include("thickCoupled/correlate.jl")
+#include("thickCoupled/IBLThickCoupled.jl")
+#include("thickCoupled/IBLFV.jl")
+#include("thickCoupled/correlate.jl")
+#include("thickCoupled/transpCoupled.jl")
 
 # IBL thin-coupled functions
 #include("thinCoupled/IBLCoupled.jl")

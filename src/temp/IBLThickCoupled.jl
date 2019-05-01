@@ -1,5 +1,5 @@
 using PyPlot
-function IBLThickCoupled(surf::TwoDSurfThick, curfield::TwoDFlowField, ncell::Int64, nsteps::Int64 = 300, dtstar::Float64 = 0.015, startflag = 0, writeflag = 0, writeInterval = 1000., delvort = delNone(); maxwrite = 50, nround=6, wakerollup=1)
+function IBLThickCoupled(surf::TwoDSurfThick, curfield::TwoDFlowField, ncell::Int64, interactiveMode::Bool, nsteps::Int64 = 300, dtstar::Float64 = 0.015, startflag = 0, writeflag = 0, writeInterval = 1000., delvort = delNone(); maxwrite = 50, nround=6, wakerollup=1)
     # If a restart directory is provided, read in the simulation data
     if startflag == 0
         mat = zeros(0, 12)
@@ -56,10 +56,12 @@ function IBLThickCoupled(surf::TwoDSurfThick, curfield::TwoDFlowField, ncell::In
     quf0 = zeros(length(qu))
     dt = 0.0005  #initStepSize(surf, curfield, t, dt, 0, writeArray, vcore, int_wax, int_c, int_t, del, E, mat, startflag, writeflag, writeInterval, delvort)
 
-    figure()
-    interactivePlot(del, E, zeros(length(E)), zeros(length(E)), xfvm, false)
+    #figure()
+    #interactivePlot(del, E, zeros(length(E)), zeros(length(E)), xfvm, true)
     #interactivePlot(surf, true)
     # time loop
+
+
     for istep = 1:nsteps
         t = t + dt
         #@printf(" Main time loop %1.3f\n", t);
@@ -73,9 +75,8 @@ function IBLThickCoupled(surf::TwoDSurfThick, curfield::TwoDFlowField, ncell::In
         end
 
         w0u, Uu,  Utu, Uxu = inviscidInterface(del, E, quf, quf0, dt, surf, xfvm)
-
         #qux = diff1(surf.x, qu)
-
+        #Utu = zeros(length(Utu))
         #qinter = Spline1D(surf.x,qux)
         #qfine = evaluate(qinter, xfvm)
 
@@ -85,7 +86,7 @@ function IBLThickCoupled(surf::TwoDSurfThick, curfield::TwoDFlowField, ncell::In
             println("zero temporal derivative ", t )
         end
 
-        w, dt, j1 ,j2 = FVMIBL(w0u, Uu, Utu, Uxu);
+        w, dt, j1 ,j2 = FVMIBL(w0u, Uu, Utu, Uxu, xfvm);
         del[:] = w[:,1]
         E[:] = (w[:,2]./w[:,1]) .- 1.0
         #dt = 0.0005
@@ -110,17 +111,28 @@ function IBLThickCoupled(surf::TwoDSurfThick, curfield::TwoDFlowField, ncell::In
         #            println("singularity (separation) detected at t=$t, x=$(xfvm[i]), j1=$(j1[i])")
         #        end
         #    end
+        viscousInviscid3!(surf, quf, xfvm, del, thick_orig, 100000.0, true)
 
-        viscousInviscid3!(surf, quf, xfvm, del, thick_orig, 1000000.0, true)
 
         #viscousInviscid!(surf, quf, del, thick_orig, xfvm, 10000.0, true)
-
-        interactivePlot(del, E, j1, j2 ,xfvm, true)
+        #interactivePlot(del, E, xfvm, interactiveMode)
+        interactivePlot(del, E, j1, j2, xfvm, true)
         #interactivePlot(surf, true)
         #w0u[1:end] = w[1:end];
         #interactivePlot(qu, Uxu, surf.x, xfvm, true)
 
+        #for i=1:length(j1)
+            #if (j1[i]>0.0002)
+                #println("Seperation detected at ", xfvm[i]/pi, " time ", t)
+                #return
+                #j1max = findallmax(j1)
+                #println("J1 max ", j1[j1max], "J1 max position ",xfvm[findallmax(j1)]/pi)
+            #end
+        #end
 
+        if(istep == 260)
+            println("Break")
+        end
 
         @printf("viscous Time :%1.10f , viscous Time step size %1.10f, step number %1.1f \n", t, dt, istep);
         #map(x -> @sprintf("Seperation occure at :%1.10f  \n",x), xtrunc[seperation]./pi);
@@ -143,7 +155,7 @@ mat, surf, curfield, del, E, quf, qu,thick_orig, thick_orig_slope
 
 end
 
-function lautat(surf::TwoDSurfThick, curfield::TwoDFlowField, t::Float64, dt::Float64, istep::Int64, writeArray::Array{Int64}, vcore::Float64, int_wax::Array{Float64}, int_c::Array{Float64}, int_t::Array{Float64}, mat, startflag = 0, writeflag = 0, writeInterval = 1000., delvort = delNone(); maxwrite = 50, nround=6, wakerollup=1)
+function lautat4IBL(surf::TwoDSurfThick, curfield::TwoDFlowField, t::Float64, dt::Float64, istep::Int64, writeArray::Array{Int64}, vcore::Float64, int_wax::Array{Float64}, int_c::Array{Float64}, int_t::Array{Float64}, wtu::Array{Float64}, wtl::Array{Float64})
 
     #Update kinematic parameters
     update_kinem(surf, t)
@@ -162,6 +174,15 @@ function lautat(surf::TwoDSurfThick, curfield::TwoDFlowField, t::Float64, dt::Fl
 
     #Construct RHS vector
     update_thickRHS(surf, curfield)
+
+    #Add transpiration velocity to RHS
+    for i = 2:surf.ndiv-1
+        surf.RHS[i-1] += 0.5*(sqrt(1 + (cam_slope[i] + thick_slope[i])^2)*wtu[i]
+                              + sqrt(1 + (cam_slope[i] - thick_slope[i])^2)*wtl[i])
+
+        surf.RHS[surf.ndiv+i-3] += 0.5*(sqrt(1 + (cam_slope[i] + thick_slope[i])^2)*wtu[i]
+                              - sqrt(1 + (cam_slope[i] - thick_slope[i])^2)*wtl[i])
+    end
 
     #Now solve the matrix problem
     #soln = surf.LHS[[1:surf.ndiv*2-3;2*surf.ndiv-1], 1:surf.naterm*2+2] \ surf.RHS[[1:surf.ndiv*2-3; 2*surf.ndiv-1]]
@@ -196,39 +217,28 @@ function lautat(surf::TwoDSurfThick, curfield::TwoDFlowField, t::Float64, dt::Fl
     #Force calculation
     cnc, cnnc, cn, cs, cl, cd, int_wax, int_c, int_t = calc_forces(surf, int_wax, int_c, int_t, dt)
 
-    # write flow details if required
-    if writeflag == 1
-        if istep in writeArray
-            dirname = "$(round(t,sigdigits=nround))"
-            writeStamp(dirname, t, surf, curfield)
-        end
-    end
+    # qu, ql = calc_edgeVel(surf, [curfield.u[1]; curfield.w[1]])
 
-    #LE velocity and stagnation point location
-    #vle = (surf.kinem.u + curfield.u[1])*sin(surf.kinem.alpha) + (curfield.w[1] - surf.kinem.hdot)*cos(surf.kinem.alpha) - surf.kinem.alphadot*surf.pvt*surf.c + sum(surf.aterm) + surf.wind_u[1]
+    # vle = qu[1]
 
-    qu, ql = calc_edgeVel(surf, [curfield.u[1]; curfield.w[1]])
+    # if vle > 0.
+    #     qspl = Spline1D(surf.x, ql)
+    #     stag = try
+    #         roots(qspl, maxn=1)[1]
+    #     catch
+    #         0.
+    #     end
+    # else
+    #     qspl = Spline1D(surf.x, qu)
+    #     stag = try
+    #         roots(qspl, maxn=1)[1]
+    #     catch
+    #         0.
+    #     end
+    # end
 
-    vle = qu[1]
-
-    if vle > 0.
-        qspl = Spline1D(surf.x, ql)
-        stag = try
-            roots(qspl, maxn=1)[1]
-        catch
-            0.
-        end
-    else
-        qspl = Spline1D(surf.x, qu)
-        stag = try
-            roots(qspl, maxn=1)[1]
-        catch
-            0.
-        end
-    end
-
-    mat = hcat(mat,[t, surf.kinem.alpha, surf.kinem.h, surf.kinem.u, vle,
-                    cl, cd, cnc, cnnc, cn, cs, stag])
+    # mat = hcat(mat,[t, surf.kinem.alpha, surf.kinem.h, surf.kinem.u, vle,
+    #                 cl, cd, cnc, cnnc, cn, cs, stag])
 
 
         return  mat, surf, curfield, int_wax, int_c, int_t
@@ -246,6 +256,8 @@ function inviscidInterface(del::Array{Float64,1}, E::Array{Float64,1}, q::Array{
     #U0 = U0[1:n]
 
     U00 = qu0[1:end]
+
+    #What is this?
     U0[U0.< 0.0] .= 1e-8
     U00[U00.< 0.0] .= 1e-8
     #println("finding the length",length(U00))
@@ -253,12 +265,13 @@ function inviscidInterface(del::Array{Float64,1}, E::Array{Float64,1}, q::Array{
 
     UxInter = Spline1D(xfvm, U0)
     Ux = derivative(UxInter, xfvm)  #diff1(xfvm, U0)
-    Ut =  temporalDeriv(U0, U00, dt)
+    Ut = temporalDeriv(U0, U00, dt)
+
 
     w1 = zeros(length(del))
     w2 = zeros(length(del))
     w1[1:end] = del[1:end]
-    w2[1:end] = del[1:end].*(E[1:end].+1.0)
+    w2[1:end] = del[1:end].*(E[1:end] .+ 1.0)
     w0 = hcat(w1,w2)
 
     return w0, U0, Ut, Ux
@@ -323,12 +336,10 @@ function initViscous(ncell::Int64)
     m = ncell - 1
     del, E, F ,B = init(m)
     x = createUniformFVM(m)
-    qu =  zeros(m)
-    ql =  zeros(m)
-    qu0 = zeros(m)
-    ql0 = zeros(m)
+    quf =  zeros(m)
+    quf0 =  zeros(m)
 
-    return del, E, x, qu, ql, qu0, ql0
+    return del, E, x, quf, quf0
 
 end
 
@@ -352,14 +363,14 @@ function interactivePlot(del::Array{Float64,1}, E::Array{Float64,1}, x::Array{Fl
         PyPlot.clf()
         subplot(211)
         #axis([0, 1, (minimum(del)), (maximum(del))])
-        plot(x[1:end-1],del)
-
+        plot(x/pi,del)
+        grid()
         subplot(212)
         #axis([0, 1, (minimum(E)), (minimum(E))])
-        plot(x[1:end-1],E)
+        plot(x/pi,E)
         show()
         pause(0.005)
-
+        grid()
     end
 
 end
@@ -368,22 +379,31 @@ function interactivePlot(del::Array{Float64,1}, E::Array{Float64,1}, J1::Array{F
 
     if(disp)
 
+        #p1 = plot(x/pi, del, xlabel = "δ",xlims = (0,1.0),xticks = 0:0.1:1.0)
+        #p2 = plot(x/pi, E, xlabel = "E",xlims = (0,1.0),xticks = 0:0.1:1.0)
         PyPlot.clf()
         subplot(221)
-        #axis([0, 1, (minimum(del)), (maximum(del))])
-        plot(x, del)
+        #ax =gca()
+        #ax[: set_xlim]([0,2])
+        #p1 = plot(x/pi, del)
+        xticks([0.61])
+        plot(x/pi, del)
+
 
         subplot(222)
         #axis([0, 1, (minimum(E)), (minimum(E))])
-        plot(x, E)
+        xticks([0.61])
+        plot(x/pi, E)
 
         subplot(223)
         #axis([0, 1, (minimum(E)), (minimum(E))])
-        plot(x,J1)
+        xticks([0.61])
+        plot(x[1:end]/pi, J1)
 
         subplot(224)
         #axis([0, 1, (minimum(E)), (minimum(E))])
-        plot(x,J2)
+        xticks([0.61])
+        plot(x[1:end]/pi,J2)
 
         show()
         pause(0.005)
@@ -391,8 +411,6 @@ function interactivePlot(del::Array{Float64,1}, E::Array{Float64,1}, J1::Array{F
     end
 
 end
-
-
 
 
 function interactivePlot(qu::Array{Float64,1}, qut::Array{Float64,1}, x::Array{Float64,1}, xfvm::Array{Float64}, disp::Bool)
@@ -424,13 +442,13 @@ function interactivePlot(surf::TwoDSurfThick, disp::Bool)
 
        subplot(211)
        #axis([0, 1, (minimum(qu)-0.1), (maximum(qu)+0.1)])
-       PyPlot.plot(surf.x, surf.thick)
+       scatter(surf.x, surf.thick)
 
        subplot(212)
       # axis([0, 1, (minimum(E)-0.1), (minimum(E)+0.1)])
-       PyPlot.plot(surf.x, surf.thick_slope)
+       scatter(surf.x, surf.thick_slope)
        show()
-       pause(0.01)
+       pause(0.001)
 
     end
 
@@ -462,12 +480,12 @@ end
 
 
 
-function mappingAerofoilToFVGrid(qu::Array{Float64,1}, surf::TwoDSurfThick, xfvm::Array{Float64,1})
+function mappingAerofoilToFVGrid(qu::Array{Float64,1}, theta::Array{Float64,1}, xfvm::Array{Float64,1})
 
 
     n = length(xfvm)
-    dx = pi/(n)
-    quFine = smoothEdgeVelocity(qu, surf, n, 30)
+    dx = (xfvm[end]-xfvm[1])/(n)
+    quFine = smoothEdgeVelocity(qu, theta, n, 20)
 
     #dqfinedx = (qfine[2:end] - qfine[1:end-1])./(dx)
     #dqfinedx[end] = 2*dqfinedx[end-1]- dqfinedx[end-2]
@@ -642,12 +660,12 @@ function diff1(x::Array{Float64,1}, f::Array{Float64,1})
 end
 
 
-function smoothEdgeVelocity(qu::Array{Float64,1}, surf::TwoDSurfThick, ncell::Int64, xCoarse::Int64)
+function smoothEdgeVelocity(qu::Array{Float64,1}, theta::Array{Float64,1}, ncell::Int64, xCoarse::Int64)
 
 
-    thetacoarse = collect(range(0, stop= pi, length=xCoarse))
-    thetafine = collect(range(0, stop= pi, length=ncell))
-    quCoarseInter = Spline1D(surf.theta, qu)
+    thetacoarse = collect(range(0, stop = pi, length = xCoarse))
+    thetafine = collect(range(0, stop = pi, length = ncell))
+    quCoarseInter = Spline1D(theta, qu)
     quCoarse = evaluate(quCoarseInter, thetacoarse)
     quFineInt = Spline1D(thetacoarse, quCoarse)
     quFine = evaluate(quFineInt, thetafine)
@@ -656,15 +674,41 @@ function smoothEdgeVelocity(qu::Array{Float64,1}, surf::TwoDSurfThick, ncell::In
 
 end
 
+function smoothEdgeGradient(qu::Array{Float64,1}, xfvm::Array{Float64,1}, xCoarse::Int64)
+
+
+    thetacoarse = collect(range(0, stop = pi, length = xCoarse))
+    #thetafine = collect(range(0, stop = pi, length = ncell))
+    quCoarseInter = Spline1D(xfvm, qu)
+    quCoarse = evaluate(quCoarseInter, thetacoarse)
+    quFineInt = Spline1D(thetacoarse, quCoarse)
+    quFine = evaluate(quFineInt, xfvm)
+
+    return quFine
+
+end
+
 function viscousInviscid3!(surf::TwoDSurfThick, quf::Array{Float64,1}, xfvm::Array{Float64}, del::Array{Float64,1}, thick_orig::Array{Float64}, Re::Float64, mode::Bool)
 
+
+
     if (mode)
+        newThickness = zeros(length(surf.x));
+        newThickness_slope = zeros(length(surf.x));
+
         qufInter = Spline1D(xfvm, quf)
         qufAero = evaluate(qufInter, surf.theta)
 
         delInter = Spline1D(xfvm, del)
         delAero = evaluate(delInter, surf.theta)
 
+        thetacoarse = collect(range(0, stop = pi, length = 20))
+        thetafine = collect(range(0, stop = pi, length = length(surf.theta)))
+
+        quCoarseInter = Spline1D(surf.theta, delAero)
+        quCoarse = evaluate(quCoarseInter, thetacoarse)
+        quFineInt = Spline1D(thetacoarse, quCoarse)
+        delAerosmooth = evaluate(quFineInt, surf.theta)
 
 
     #delaero = UnsteadyFlowSolvers.reverseMappingAerofoilToAeroGrid(quf, surf, del, thick_orig, xfvm)
@@ -674,9 +718,13 @@ function viscousInviscid3!(surf::TwoDSurfThick, quf::Array{Float64,1}, xfvm::Arr
 
         newthickInter = Spline1D(surf.x, newThickness)
 
+        #xcoarse = gridGen(70)
 
-
-        newThickness_slope = derivative(newthickInter, surf.x)
+        #newThickCoarse = evaluate(newthickInter, xcoarse)
+        #newThickfineInter = Spline1D(xcoarse, newThickCoarse)
+        #newThickfine = evaluate(newThickfineInter, surf.x)
+        #newthickInter = Spline1D(surf.x, newThickfine)
+        newThickness_slope = diff1(surf.x, newThickness)#derivative(newthickInter, surf.x) #
 
 
         surf.thick[:] = newThickness[:]
@@ -684,3 +732,108 @@ function viscousInviscid3!(surf::TwoDSurfThick, quf::Array{Float64,1}, xfvm::Arr
     end
 
 end
+
+
+function gridGen(ncell::Int64)
+
+    xcoarse = zeros(ncell)
+    dtheta = pi/(length(xcoarse)-1)
+
+    for i=1:length(xcoarse)-1
+    xcoarse[i+1] = 0.5*(1-cos(dtheta*i))
+    end
+
+    return xcoarse
+end
+
+function findallmax(arr)
+    max_positions = Vector{Int}()
+    min_val = typemin(eltype(arr))
+    for i in eachindex(arr)
+        if arr[i] > min_val
+            min_val = arr[i]
+            empty!(max_positions)
+            push!(max_positions, i)
+        elseif arr[i] == min_val
+            push!(max_positions, i)
+        end
+    end
+    max_positions
+end
+
+#iterIBLConstruct! = function (x, res, surf::TwoDSurf, curfield::TwoDFlowField, quf::Vector{Float64}, quf0::Vector{Float64}, dt::Float64)
+
+struct iterIBLsolve
+    surf :: TwoDSurfThick
+    curfield :: TwoDFlowField
+    quf :: Array{Float64}
+    quf0 :: Array{Float64}
+    dt :: Float64
+    xfvm :: Array{Float64}
+    E :: Array{Float64}
+end
+
+function (iter::iterIBLsolve)(x::Array{Float64})
+    
+    res = zeros(iter.surf.ndiv*2-2+2*iter.surf.ndiv)
+
+    #Assign iterands and calculate residuals
+    iter.surf.aterm[:] = x[1:iter.surf.naterm]
+    iter.surf.bterm[:] = x[iter.surf.naterm+1:2*iter.surf.naterm]
+    iter.curfield.tev[end].s = x[2*iter.surf.naterm+1]
+    delu = x[2*iter.surf.naterm+2:2*iter.surf.naterm+1+iter.surf.ndiv]
+    dell = x[2*iter.surf.naterm+iter.surf.ndiv+2:2*iter.surf.naterm+1+2*iter.surf.ndiv]
+
+    wtu = zeros(iter.surf.ndiv)
+    wtl = zeros(iter.surf.ndiv)
+
+    qu, ql = calc_edgeVel(iter.surf, [iter.curfield.u[1], iter.curfield.w[1]])
+
+    wtu[2:end] = diff(qu.*delu)./diff(iter.surf.x)
+    wtu[1] = 2*wtu[2] - wtu[3]
+    wtl[:] = wtu[:]
+
+    RHStransp = zeros(iter.surf.ndiv*2-2)
+
+    #Add transpiration velocity to RHS
+    for i = 2:iter.surf.ndiv-1
+        RHStransp[i-1] += 0.5*(sqrt(1 + (iter.surf.cam_slope[i] + iter.surf.thick_slope[i])^2)*wtu[i]
+                              + sqrt(1 + (iter.surf.cam_slope[i] - iter.surf.thick_slope[i])^2)*wtl[i])
+
+        RHStransp[iter.surf.ndiv+i-3] += 0.5*(sqrt(1 + (iter.surf.cam_slope[i] + iter.surf.thick_slope[i])^2)*wtu[i]
+                                        - sqrt(1 + (iter.surf.cam_slope[i] - iter.surf.thick_slope[i])^2)*wtl[i])
+    end
+
+    res[1:iter.surf.ndiv*2-2] = iter.surf.LHS[1:iter.surf.ndiv*2-2, 1:iter.surf.naterm*2+1]*x[1:2*iter.surf.naterm+1] - iter.surf.RHS[1:iter.surf.ndiv*2-2] - RHStransp[:]
+
+    #Update induced velocities to include effect of last shed vortex
+    update_indbound(iter.surf, iter.curfield)
+
+    iter.quf[:], thetafine = mappingAerofoilToFVGrid(qu, iter.surf.theta, iter.xfvm)
+
+    iter.xfvm[:] = thetafine
+
+    w0u, Uu,  Utu, Uxu = inviscidInterface(delu, iter.E, iter.quf, iter.quf0, iter.dt, iter.surf, iter.xfvm)
+
+    w, j1 ,j2 = FVMIBL(w0u, Uu, Utu, Uxu, iter.xfvm, iter.dt);
+    delfvm = w[:,1]
+    Efvm = (w[:,2]./w[:,1]) .- 1.0
+
+    #Update transpiration velocity
+    delInter = Spline1D(xfvm, delfvm)
+    delu[:] = evaluate(delInter, iter.surf.theta)
+    dell[:] = delu[:]
+
+    EInter = Spline1D(xfvm, Efvm)
+    iter.E[:] = evaluate(EInter, iter.surf.theta)
+    dell[:] = delu[:]
+
+
+    res[2*iter.surf.ndiv-1:end] = x[2*iter.surf.ndiv-1:end] .- [delu; dell]
+
+    return res
+end
+
+#iterIBLsolve!(x, res) = iterIBLConstruct!(x, res, surf, curfield, quf, quf0, dt)
+
+
