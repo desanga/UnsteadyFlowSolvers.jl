@@ -1,10 +1,10 @@
-function FVMIBL(w::Array{Float64,2}, U::Array{Float64,1}, Ut::Array{Float64,1}, Ux::Array{Float64,1}, x::Array{Float64,1})
+function FVMIBL(w::Array{Float64,2}, U::Array{Float64,1}, Ut::Array{Float64,1}, Ux::Array{Float64,1}, x::Array{Float64,1}, dt::Float64)
 
     dx = zeros(length(x))
     n = Int(length(w)/2)
     dx = (x[2:end]- x[1:end-1])
 
-    # add your code 
+    # add your code
 
 
     # correlate the unknown values from the del and E values
@@ -20,7 +20,8 @@ function FVMIBL(w::Array{Float64,2}, U::Array{Float64,1}, Ut::Array{Float64,1}, 
 
     #lamb1 ,lamb2 = eigenlamb(U, dfde, FF, w)
     lamb1 ,lamb2 = calc_eigen(E, FF, dfde, U)
-    dt = calc_Dt(lamb1 ,lamb2, 0.2, dx)
+
+    #dt = calc_Dt(lamb1 ,lamb2, 0.2, dx)
 
     # two step forward Euler methods for adding the source term to the right hand-side
     # of the transport equations.
