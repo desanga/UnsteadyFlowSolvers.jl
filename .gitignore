@@ -26,3 +26,5 @@ src/thickCoupled/EdgeVelocityTest\.jl
 src/thickCoupled/IBLThickCoupledIterative\.jl
 
 src/thickCoupled/IBLThickCoupledDecoupledMethod\.jl
+
+steadyNACA0012\.zip
