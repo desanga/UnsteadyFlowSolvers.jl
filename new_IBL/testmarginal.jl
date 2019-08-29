@@ -212,7 +212,7 @@ function IBLnew(surf::TwoDSurfThick, curfield::TwoDFlowField, nsteps::Int64 = 30
             end
 
 
-            error("stop here")
+
             #Source strengths in wake and induced velocity
             uind_src = zeros(surf.ndiv)
             for i = 1:surf.ndiv
@@ -220,6 +220,8 @@ function IBLnew(surf::TwoDSurfThick, curfield::TwoDFlowField, nsteps::Int64 = 30
                     str = 0.5(wfn[iw] + wfn[iw+1])
                     xloc = 0.5*(x_w[iw] + x_w[iw+1])
                     uind_src[i] += 1/(2*pi)*str/(xloc - surf.x[i])*(x_w[iw+1] - x_w[iw])
+                    println("wfn value ",str)
+
                 end
                 # for iw = bl_end:surf.ndiv-2
                 #     str = (quc[iw+1]*del_iter[iw+1] - quc[iw]*del_iter[iw])/(sqrt(Re)*(surf.x[iw+1] - surf.x[iw]))
@@ -227,7 +229,7 @@ function IBLnew(surf::TwoDSurfThick, curfield::TwoDFlowField, nsteps::Int64 = 30
                 #     uind_src[i] += 1/(2*pi)*str/(xloc - surf.x[i])*(x_w[iw+1] - x_w[iw])
                 # end
             end
-
+            #error("stop here")
             surf.uind_u[:] += uind_src[:]
             surf.uind_l[:] += uind_src[:]
 
