@@ -46,12 +46,14 @@ mutable struct TwoDSurfThick
     rho :: Float64
     LHS :: Array{Float64}
     RHS :: Vector{Float64}
+    delta::Vector{Float64}
 
     function TwoDSurfThick(coord_file, pvt, kindef,lespcrit=zeros(1); c=1., uref=1., ndiv=70, naterm=35, initpos = [0.; 0.])
         theta = zeros(ndiv); x = zeros(ndiv); cam = zeros(ndiv); cam_slope = zeros(ndiv)
         thick = zeros(ndiv); thick_slope = zeros(ndiv); bnd_x_u = zeros(ndiv); bnd_z_u = zeros(ndiv)
         bnd_x_l = zeros(ndiv); bnd_z_l = zeros(ndiv); bnd_x_chord = zeros(ndiv); bnd_z_chord = zeros(ndiv)
-
+        delta = zeros(ndiv)
+        
         kinem = KinemPar(0, 0, 0, 0, 0, 0)
 
         dtheta = pi/(ndiv-1)
@@ -147,27 +149,27 @@ mutable struct TwoDSurfThick
 
         #Construct constant columns in LHS (all except the last one involving shed vortex)
         for i = 2:ndiv-1
-            
+
              #Sweep all rows (corresponding to ndiv) for lifting equation
-            
+
             #Sweep columns for aterms
             for n = 1:naterm
-                LHS[i-1,n] = cos(n*theta[i]) - thick_slope[i]*sin(n*theta[i]) 
+                LHS[i-1,n] = cos(n*theta[i]) - thick_slope[i]*sin(n*theta[i])
             end
 
             #Sweep columns for bterm
             for n = 1:naterm
-                LHS[i-1,n+naterm] = cam_slope[i]*cos(n*theta[i]) 
+                LHS[i-1,n+naterm] = cam_slope[i]*cos(n*theta[i])
             end
 
             #TEV term must be updated in the loop after its location is known
             #Sweep all rows (corresponding to ndiv) for nonlifting equation
-         
+
             for n = 1:naterm
                 LHS[ndiv+i-3,n]  = -cam_slope[i]*sin(n*theta[i])
             end
             for n = 1:naterm
-                LHS[ndiv+i-3,naterm+n] = sin(n*theta[i]) + thick_slope[i]*cos(n*theta[i]) 
+                LHS[ndiv+i-3,naterm+n] = sin(n*theta[i]) + thick_slope[i]*cos(n*theta[i])
             end
         end
 
@@ -186,8 +188,8 @@ mutable struct TwoDSurfThick
         for n = 1:naterm
             LHS[2*ndiv-1,n+naterm] = ((-1)^n)*100.
         end
-        
-        
+
+
         # LHS[2*ndiv-1,1] = sqrt(2. /rho) + 1.
         # for n = 1:naterm
         #     LHS[2*ndiv-1,n+1] = -1.

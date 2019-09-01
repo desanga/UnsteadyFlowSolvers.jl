@@ -6,7 +6,7 @@ using ForwardDiff
 using Dierckx
 using Serialization
 using DelimitedFiles
-using Plots
+using PyPlot
 ## Add any new functions here
 
 
@@ -22,7 +22,7 @@ full_kinem = KinemDef(alphadef, hdef, udef)
 pvt = 0.25
 
 #geometry = "Cylinder"
-geometry = "NACA0004"
+geometry = "NACA0012"
 
 lespcrit = [10.25;]
 
@@ -208,7 +208,7 @@ function IBLnew(surf::TwoDSurfThick, curfield::TwoDFlowField, nsteps::Int64 = 30
             a_wfn = log10(2*quc[end]*del_iter[end]/sqrt(Re))
             wfn[1] = 2*(quc[end]*del_iter[end] - quc[end-1]*del_iter[end-1])/(sqrt(Re)*(surf.x[end] - surf.x[end-1]))
             for i = 2:nw
-                wfn[i] = (10^(a_wfn - 3.2*(x_w[i] - surf.c)) - 10^(a_wfn - 3.2*(x_w[i] - 1.)))/(x_w[i] - x_w[i-1])
+                wfn[i] =  10^(a_wfn - 3.2*(x_w[i] - 1.))
             end
 
 
@@ -220,7 +220,7 @@ function IBLnew(surf::TwoDSurfThick, curfield::TwoDFlowField, nsteps::Int64 = 30
                     str = 0.5(wfn[iw] + wfn[iw+1])
                     xloc = 0.5*(x_w[iw] + x_w[iw+1])
                     uind_src[i] += 1/(2*pi)*str/(xloc - surf.x[i])*(x_w[iw+1] - x_w[iw])
-                    println("wfn value ",str)
+                #    println("wfn value ",str)
 
                 end
                 # for iw = bl_end:surf.ndiv-2
@@ -326,7 +326,7 @@ function IBLnew(surf::TwoDSurfThick, curfield::TwoDFlowField, nsteps::Int64 = 30
 
             #if iter == iterMax
             if res <= resTol
-                println("converged")
+                println("converged : time ",t)
 
                 # #Re-mesh the delta to prevent spurious oscillations developing
                 # @. deltacurve(x, d) = d[1] + d[2]*x + d[3]*x^2 + d[4]*x^3 + d[5]*x^4
@@ -340,6 +340,7 @@ function IBLnew(surf::TwoDSurfThick, curfield::TwoDFlowField, nsteps::Int64 = 30
 
                 delu[:] = del_iter[:]
                 Eu[:] = E_iter[:]
+                surf.delu[:] = delu[:]
                 push!(curfield.tev, TwoDVort(xloc_tev, zloc_tev, tevstr, vcore, 0., 0.))
                 #srcstr = (del_iter[end] - del_iter[end-1])/sqrt(Re)
                 #if srcstr > 0.
