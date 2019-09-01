@@ -6,7 +6,7 @@ using ForwardDiff
 using Dierckx
 using Serialization
 using DelimitedFiles
-using PyPlot
+using Plots
 ## Add any new functions here
 
 
