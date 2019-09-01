@@ -141,7 +141,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             a_wfn = log10(2*quc[end]*del_iter[end]/sqrt(Re))
             wfn[1] = 2*(quc[end]*del_iter[end] - quc[end-1]*del_iter[end-1])/(sqrt(Re)*(surf.x[end] - surf.x[end-1]))
             for i = 2:nw
-                wfn[i] = (10^(a_wfn - 3.2*(x_w[i] - surf.c)) - 10^(a_wfn - 3.2*(x_w[i] - 1.)))/(x_w[i] - x_w[i-1])
+             #  wfn[i] = (10^(a_wfn - 3.2*(x_w[i] - surf.c)) - 10^(a_wfn - 3.2*(x_w[i] - 1.)))/(x_w[i] - x_w[i-1])
+                wfn[i] = 10^(a_wfn - 10^(a_wfn - 3.2*(x_w[i] - 1.)))
             end
             
             #Source strengths in wake and induced velocity
@@ -231,13 +232,14 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             
             #Check for convergence
             res =  sum(abs.(del_prev .- del_iter))
-            println(iter, "   ", res)
+            println(iter, "   ", res," time: ",t)
 
             #if iter == iterMax
             if res <= resTol
                 println("converged")
                 delu[:] = del_iter[:]
                 Eu[:] = E_iter[:]
+		surf.delta[2:end] = delu[:]
                 push!(curfield.tev, TwoDVort(xloc_tev, zloc_tev, tevstr, vcore, 0., 0.))
             end
 
