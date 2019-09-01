@@ -95,7 +95,7 @@ export
     #cfd utility function
     compareForces,
     compare_cp_edgevel,
-    
+
     # 2D low-order solver methods
     theodorsen,
     lautat,
@@ -110,7 +110,7 @@ export
     # 2D postprocessing functions
     calc_edgeVel,
     calc_edgeVel_cp,
-    
+
     #IBLThickCoupled,
     initDelE,
     FVMIBLorig,
@@ -177,7 +177,7 @@ include("thick2D/postprocess.jl")         # postprocessing functions
 
 
 # low-order 2D thick IBL solvers
-include("thickCoupled/typedefs.jl")            # type definitions
+#include("thickCoupled/typedefs.jl")            # type definitions
 include("thickCoupled/calcs.jl")               # calculation functions
 include("thickCoupled/solvers.jl")             # solver methods
 include("thickCoupled/postprocess.jl")         # postprocessing functions

@@ -340,7 +340,7 @@ function IBLnew(surf::TwoDSurfThick, curfield::TwoDFlowField, nsteps::Int64 = 30
 
                 delu[:] = del_iter[:]
                 Eu[:] = E_iter[:]
-                surf.delu[:] = delu[:]
+                surf.delta[2:end] = delu[:]
                 push!(curfield.tev, TwoDVort(xloc_tev, zloc_tev, tevstr, vcore, 0., 0.))
                 #srcstr = (del_iter[end] - del_iter[end-1])/sqrt(Re)
                 #if srcstr > 0.

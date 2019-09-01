@@ -258,7 +258,7 @@ function FVMIBLgridvar(w, U, Ut, Ux, dx, t, t_tot)
         # end
         
         j1, j2 = separationJ(lamb1, lamb2, dt, dx)
-        jmax = 1e-3  # maximum(j1)
+        jmax = 1e-5  # maximum(j1)
         if jmax > 1e-4
             println("Separation identified", "    jsep=$jmax", "   i_s=$(argmax(j1))")
             i_s = argmax(j1) 
