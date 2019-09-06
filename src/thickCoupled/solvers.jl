@@ -176,7 +176,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             surf.uind_l[:] -= ind_new_u_l[:]
             surf.wind_l[:] -= ind_new_w_l[:]
             
-            smoothScaledEnd!(surf.x, qu,10)
+            smoothScaledEnd!(surf.x, qu,4)
             
             #Solve the FV problem at cell centres
             for i = 1:surf.ndiv-1
@@ -203,7 +203,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             del_iter[:] = wsoln[:,1]
             E_iter[:] = wsoln[:,2]./wsoln[:,1] .- 1.
 
-            smoothScaledEnd!(suc, del_iter, 10)
+            smoothScaledEnd!(suc, del_iter, 4)
             
             #Find suitable naca coefficients to fit the modified airfoil
 

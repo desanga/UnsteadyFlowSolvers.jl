@@ -30,3 +30,5 @@ src/thickCoupled/IBLThickCoupledDecoupledMethod\.jl
 steadyNACA0012\.zip
 
 new_IBL/naca0018.output
+
+IBL/resultsSummary
