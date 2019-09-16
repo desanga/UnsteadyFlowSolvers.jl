@@ -32,3 +32,25 @@ steadyNACA0012\.zip
 new_IBL/naca0018.output
 
 IBL/resultsSummary
+
+IBL/AOA_lower=0.png
+
+IBL/AOA_lower=10.png
+
+IBL/AOA_lower=10v.png
+
+IBL/AOA_lower=3.png
+
+IBL/AOA_lower=5.png
+
+IBL/AOA_upper=0.png
+
+IBL/AOA_upper=10.png
+
+IBL/AOA_upper=10v.png
+
+IBL/AOA_upper=3.png
+
+IBL/AOA_upper=5.png
+
+IBL/rootfinding.jl
