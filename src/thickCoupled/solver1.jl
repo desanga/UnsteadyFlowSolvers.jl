@@ -72,6 +72,9 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
         su[i] = simpleTrapz(dsdx[1:i], surf.x[1:i])
     end
 
+    surf.su_i[:] =thick_slope_orig[:]
+
+
     for i = 1:surf.ndiv-1
         suc[i] = (su[i] + su[i+1])/2
     end
@@ -191,7 +194,23 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
                 quc[i] = (qu[i] + qu[i+1])/2
             end
             
-            qucx[2:end] = diff(quc)./diff(suc)
+   	    dsdx = zeros(surf.ndiv)
+    	    for i = 2:surf.ndiv
+       		 dsdx[i] = sqrt(1 + (surf.cam_slope[i] + surf.thick_slope[i])^2)
+   	    end
+   	    dsdx[1] = dsdx[2]
+            su[1] = 0.
+   	    for i = 2:surf.ndiv
+       		 su[i] = simpleTrapz(dsdx[1:i], surf.x[1:i])
+   	    end
+
+	    surf.su[:] = su[:]
+
+   	    for i = 1:surf.ndiv-1
+       		 suc[i] = (su[i] + su[i+1])/2
+   	    end
+           
+	   qucx[2:end] = diff(quc)./diff(suc)
             qucx[1] = qucx[2]
 
             #smoothEnd!(qucx, 10)
@@ -231,7 +250,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             newthick[surf.ndiv] = thick_orig[surf.ndiv] + (quc[surf.ndiv-1]*del_iter[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv]).^2))
 
             surf.thick_a[:] = newthick[:]
-            bstart = [-0.1260; -0.3516; 0.2843; -0.1015]
+            bstart = [-0.1260; -0.3516; 0.2843; -0.1015; 0.0; 0.0; 0.0]
 
             coef = find_nacaCoef(surf, newthick, bstart)
 
@@ -239,7 +258,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             b1 = 0.2969
             b = [b1; coef]
             
-            @. nacath(x) = 5*th*(b[1]*sqrt(x) + b[2]*x + b[3]*x^2 + b[4]*x^3 + b[5]*x^4)
+            @. nacath(x) = 5*th*(b[1]*sqrt(x) + b[2]*x + b[3]*x^2 + b[4]*x^3 + b[5]*x^4 + b[6]*x^5 + b[7]*x^6 + b[8]*x^7)
             
             #Find new shape of airfoil
             for i = 1:surf.ndiv

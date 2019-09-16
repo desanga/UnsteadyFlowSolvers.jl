@@ -278,7 +278,7 @@ function find_nacaCoef(surf::TwoDSurfThick, thick::Array{Float64}, bstart)
     
     b1 = 0.2969
     
-    @. nacath(x, b) = 5*th*(b1*sqrt(x) + b[1]*x + b[2]*x^2 + b[3]*x^3 + b[4]*x^4)
+    @. nacath(x, b) = 5*th*(b1*sqrt(x) + b[1]*x + b[2]*x^2 + b[3]*x^3 + b[4]*x^4 + b[5]*x^5 + b[6]*x^6+ b[7]*x^7)
     
     fit = curve_fit(nacath, surf.x[2:end], thick[2:end], bstart)
     
