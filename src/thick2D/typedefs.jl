@@ -46,13 +46,24 @@ mutable struct TwoDSurfThick
     rho :: Float64
     LHS :: Array{Float64}
     RHS :: Vector{Float64}
-    delta::Vector{Float64}
+    deltaU::Vector{Float64}
+    deltaL::Vector{Float64}
+    ueU::Vector{Float64}
+    ueL::Vector{Float64}
+    thick_a::Vector{Float64}
 
     function TwoDSurfThick(coord_file, pvt, kindef,lespcrit=zeros(1); c=1., uref=1., ndiv=70, naterm=35, initpos = [0.; 0.])
         theta = zeros(ndiv); x = zeros(ndiv); cam = zeros(ndiv); cam_slope = zeros(ndiv)
         thick = zeros(ndiv); thick_slope = zeros(ndiv); bnd_x_u = zeros(ndiv); bnd_z_u = zeros(ndiv)
         bnd_x_l = zeros(ndiv); bnd_z_l = zeros(ndiv); bnd_x_chord = zeros(ndiv); bnd_z_chord = zeros(ndiv)
-        delta = zeros(ndiv)
+        deltaU = zeros(ndiv)
+	ueU = zeros(ndiv)	
+
+        deltaL = zeros(ndiv)
+	ueL = zeros(ndiv)
+	thick_a = zeros(ndiv) 
+
+
 
         kinem = KinemPar(0, 0, 0, 0, 0, 0)
 
@@ -197,6 +208,6 @@ mutable struct TwoDSurfThick
         # end
         levflag = [0;]
 
-        new(c, uref, coord_file, pvt, ndiv, naterm, kindef, cam, cam_slope, thick, thick_slope, theta, x, kinem, bnd_x_u, bnd_z_u, bnd_x_l, bnd_z_l, bnd_x_chord, bnd_z_chord, uind_u, uind_l, wind_u, wind_l, downwash, a0, aterm, a0dot, adot, a0prev, aprev, bterm, bv, src, lespcrit, levflag, initpos, rho, LHS, RHS,delta)
+        new(c, uref, coord_file, pvt, ndiv, naterm, kindef, cam, cam_slope, thick, thick_slope, theta, x, kinem, bnd_x_u, bnd_z_u, bnd_x_l, bnd_z_l, bnd_x_chord, bnd_z_chord, uind_u, uind_l, wind_u, wind_l, downwash, a0, aterm, a0dot, adot, a0prev, aprev, bterm, bv, src, lespcrit, levflag, initpos, rho, LHS, RHS, deltaU,deltaL, ueU, ueL, thick_a) 
     end
 end

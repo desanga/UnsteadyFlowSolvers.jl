@@ -58,9 +58,10 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
     thick_slope_orig = zeros(surf.ndiv)
     thick_slope_orig[:] = surf.thick_slope[:]
 
-    #Initialise boundary layer
+   #Initialise boundary layer
     delu,dell, Eu, El = initDelE(surf.ndiv-1)
 
+    
     dsdx = zeros(surf.ndiv)
     for i = 2:surf.ndiv
         dsdx[i] = sqrt(1 + (surf.cam_slope[i] + surf.thick_slope[i])^2)
@@ -174,7 +175,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             surf.uind_l[:] += ind_new_u_l[:]
             surf.wind_l[:] += ind_new_w_l[:]
 
-            qu[:], _ = calc_edgeVel(surf, [curfield.u[1], curfield.w[1]])
+            qu[:], ql[:] = calc_edgeVel(surf, [curfield.u[1], curfield.w[1]])
             surf.uind_u[:] -= uind_src[:]
             surf.uind_l[:] -= uind_src[:]
           
@@ -184,7 +185,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             surf.wind_l[:] -= ind_new_w_l[:]
             
             smoothScaledEnd!(surf.x, qu,10)
-            
+            smoothScaledEnd!(surf.x, ql,10)           
             #Solve the FV problem at cell centres
             for i = 1:surf.ndiv-1
                 quc[i] = (qu[i] + qu[i+1])/2
@@ -196,8 +197,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             #smoothEnd!(qucx, 10)
            
 	    surf.ueU[:] = qu[:] 
+	    surf.ueL[:] = ql[:] 
 
-	    #error("stop here")
 
             if istep == 1
                 quct[:] .= 0.
@@ -207,17 +208,18 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
             w = [delu delu.*(Eu .+ 1)]
           
-            wsoln, i_sep = FVMIBLgridvar(w, quc, quct, qucx, diff(su), t-dt, t)
+           wsoln, i_sep = FVMIBLgridvar(w, quc, quct, qucx, diff(su), t-dt, t)
 
-	  
 	    
 
             del_prev[:] = del_iter[:]
             
             del_iter[:] = wsoln[:,1]
-            E_iter[:] = wsoln[:,2]./wsoln[:,1] .- 1.
 
-            smoothScaledEnd!(suc, del_iter,10)
+	    E_iter[:] = wsoln[:,2]./wsoln[:,1] .- 1.
+
+
+            smoothScaledEnd!(suc, del_iter, 10)
             
             #Find suitable naca coefficients to fit the modified airfoil
 
@@ -228,6 +230,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             
             newthick[surf.ndiv] = thick_orig[surf.ndiv] + (quc[surf.ndiv-1]*del_iter[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv]).^2))
 
+            surf.thick_a[:] = newthick[:]
             bstart = [-0.1260; -0.3516; 0.2843; -0.1015]
 
             coef = find_nacaCoef(surf, newthick, bstart)
@@ -247,6 +250,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             #Check for convergence
             res =  sum(abs.(del_prev .- del_iter))
             println(iter, "   ", res," time: ",t)
+
 
             #if iter == iterMax
             if res <= resTol
