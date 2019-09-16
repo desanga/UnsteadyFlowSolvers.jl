@@ -259,7 +259,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             end
 
             if iter == 3 && mod(istep,10) == 0
-                figure(1)
+                #figure(1)
                 plot(surf.x, qu)
                 figure(2)
                 plot(surf.x, surf.thick)
