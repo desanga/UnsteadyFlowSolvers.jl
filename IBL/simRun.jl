@@ -40,7 +40,7 @@ delvort = delNone()
 
 Re = 10000
 
-mat, surf, curfield = IBL_shape_attached(Re, surf, curfield, nsteps, dtstar, startflag, writeflag, writeInterval, delvort)
+mat, surf, curfield =  IBL_shape_attached(Re, surf, curfield, nsteps, dtstar, startflag, writeflag, writeInterval, delvort)
 
 
 

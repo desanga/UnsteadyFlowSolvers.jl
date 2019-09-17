@@ -1,4 +1,55 @@
-function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, nsteps::Int64 = 300, dtstar::Float64 = 0.015, startflag = 0, writeflag = 0, writeInterval = 1000., delvort = delNone(); maxwrite = 50, nround=6)
+push!(LOAD_PATH,"../src/")
+using UnsteadyFlowSolvers
+
+using LsqFit
+using ForwardDiff
+using Dierckx
+using Serialization
+using DelimitedFiles
+using PyPlot
+## Add any new functions here
+
+
+
+alphadef = ConstDef(0. *pi/180)
+
+hdef = ConstDef(0.)
+
+udef = ConstDef(1.)
+
+full_kinem = KinemDef(alphadef, hdef, udef)
+
+pvt = 0.25
+
+#geometry = "Cylinder"
+geometry = "NACA0012"
+
+lespcrit = [10.25;]
+
+surf = TwoDSurfThick(geometry, pvt, full_kinem, ndiv=140, naterm=136)
+
+curfield = TwoDFlowField()
+
+dtstar = 0.005
+
+t_tot = 5.
+
+nsteps = Int(round(t_tot/dtstar))+1
+println("nsteps ", nsteps)
+
+startflag = 0
+
+writeflag = 1
+
+writeInterval = 0.5
+
+#delvort = delSpalart(500, 12, 1e-5)
+delvort = delNone()
+
+
+### Code below should go inside the solver function
+
+function IBLnew(surf::TwoDSurfThick, curfield::TwoDFlowField, nsteps::Int64 = 300, dtstar::Float64 = 0.015, startflag = 0, writeflag = 0, writeInterval = 1000., delvort = delNone(); maxwrite = 50, nround=6)
 
     # If a restart directory is provided, read in the simulation data
     if startflag == 0
@@ -37,9 +88,18 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
     int_c = zeros(surf.ndiv)
     int_t = zeros(surf.ndiv)
 
+    RHStransp = zeros(surf.ndiv*2-2)
+
+    wtu = zeros(surf.ndiv)
+    wtl = zeros(surf.ndiv)
+
+    t = 0.
+    dt = dtstar
+
+    Re = 10000
+
     #At this time coded for symmetric situations only
     qu = zeros(surf.ndiv)
-    
     su = zeros(surf.ndiv)
     quc = zeros(surf.ndiv-1)
     quc_prev = zeros(surf.ndiv-1)
@@ -47,19 +107,13 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
     quct = zeros(surf.ndiv-1)
     suc = zeros(surf.ndiv-1)
 
-    ql =  zeros(surf.ndiv) 
-    qlc = zeros(surf.ndiv-1)
-    qluc_prev = zeros(surf.ndiv-1)
-    qlcx = zeros(surf.ndiv-1)
-    qlct = zeros(surf.ndiv-1)
-
     thick_orig = zeros(surf.ndiv)
     thick_orig[:] = surf.thick[:]
     thick_slope_orig = zeros(surf.ndiv)
     thick_slope_orig[:] = surf.thick_slope[:]
 
     #Initialise boundary layer
-    delu,dell, Eu, El = initDelE(surf.ndiv-1)
+    delu, _, Eu, _ = initDelE(surf.ndiv-1)
 
     dsdx = zeros(surf.ndiv)
     for i = 2:surf.ndiv
@@ -69,7 +123,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
     su[1] = 0.
     for i = 2:surf.ndiv
         su[i] = simpleTrapz(dsdx[1:i], surf.x[1:i])
-    end
+   end
 
     for i = 1:surf.ndiv-1
         suc[i] = (su[i] + su[i+1])/2
@@ -84,6 +138,12 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
     nw = length(x_w)
     wfn = zeros(nw)
 
+    fit_d = zeros(5)
+
+    bl_end = surf.ndiv-1
+
+    iterMax = 20
+
     for istep = 1:nsteps
 
         #Udpate current time
@@ -91,7 +151,6 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
         #Update kinematic parameters
         update_kinem(surf, t)
-
 
         #Update flow field parameters if any
         update_externalvel(curfield, t)
@@ -111,11 +170,11 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
         E_iter = zeros(surf.ndiv-1)
 
         resTol = 1e-5
-        iterMax = 10
 
         quc_prev[:] = quc[:]
 
-        #while (iter < iterMax)
+        i_sep = 0
+
         while res > resTol
 
             iter += 1
@@ -149,9 +208,10 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             a_wfn = log10(2*quc[end]*del_iter[end]/sqrt(Re))
             wfn[1] = 2*(quc[end]*del_iter[end] - quc[end-1]*del_iter[end-1])/(sqrt(Re)*(surf.x[end] - surf.x[end-1]))
             for i = 2:nw
-             #  wfn[i] = (10^(a_wfn - 3.2*(x_w[i] - surf.c)) - 10^(a_wfn - 3.2*(x_w[i] - 1.)))/(x_w[i] - x_w[i-1])
-                wfn[i] = 10^(a_wfn - 10^(a_wfn - 3.2*(x_w[i] - 1.)))
+                wfn[i] =  10^(a_wfn - 3.2*(x_w[i] - 1.))
             end
+
+
 
             #Source strengths in wake and induced velocity
             uind_src = zeros(surf.ndiv)
@@ -160,9 +220,16 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
                     str = 0.5(wfn[iw] + wfn[iw+1])
                     xloc = 0.5*(x_w[iw] + x_w[iw+1])
                     uind_src[i] += 1/(2*pi)*str/(xloc - surf.x[i])*(x_w[iw+1] - x_w[iw])
-                end
-            end
+                #    println("wfn value ",str)
 
+                end
+                # for iw = bl_end:surf.ndiv-2
+                #     str = (quc[iw+1]*del_iter[iw+1] - quc[iw]*del_iter[iw])/(sqrt(Re)*(surf.x[iw+1] - surf.x[iw]))
+                #     xloc = 0.5*(surf.x[iw] + surf.x[iw+1])
+                #     uind_src[i] += 1/(2*pi)*str/(xloc - surf.x[i])*(x_w[iw+1] - x_w[iw])
+                # end
+            end
+            #error("stop here")
             surf.uind_u[:] += uind_src[:]
             surf.uind_l[:] += uind_src[:]
 
@@ -175,15 +242,17 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             surf.wind_l[:] += ind_new_w_l[:]
 
             qu[:], _ = calc_edgeVel(surf, [curfield.u[1], curfield.w[1]])
+
             surf.uind_u[:] -= uind_src[:]
             surf.uind_l[:] -= uind_src[:]
-          
+
             surf.uind_u[:] -= ind_new_u_u[:]
             surf.wind_u[:] -= ind_new_w_u[:]
             surf.uind_l[:] -= ind_new_u_l[:]
             surf.wind_l[:] -= ind_new_w_l[:]
 
-            smoothScaledEnd!(surf.x, qu,10)
+            #smoothEnd!(qu,10)
+            smoothScaledEnd!(surf.x,qu,10)
 
             #Solve the FV problem at cell centres
             for i = 1:surf.ndiv-1
@@ -194,10 +263,6 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             qucx[1] = qucx[2]
 
             #smoothEnd!(qucx, 10)
-           
-	    surf.ueU[:] = qu[:] 
-
-	    #error("stop here")
 
             if istep == 1
                 quct[:] .= 0.
@@ -206,19 +271,30 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             end
 
             w = [delu delu.*(Eu .+ 1)]
-          
-            wsoln, i_sep = FVMIBLgridvar(w, quc, quct, qucx, diff(su), t-dt, t)
 
-	  
-	    
+            wsoln, i_sep = FVMIBLgridvar(w[1:bl_end,:], quc[1:bl_end], quct[1:bl_end], qucx[1:bl_end], diff(su)[1:bl_end], t-dt, t)
 
             del_prev[:] = del_iter[:]
 
-            del_iter[:] = wsoln[:,1]
-            E_iter[:] = wsoln[:,2]./wsoln[:,1] .- 1.
+            del_iter[1:bl_end] = wsoln[:,1]
 
-            smoothScaledEnd!(suc, del_iter,10)
-            
+            E_iter[1:bl_end] = wsoln[:,2]./wsoln[:,1] .- 1.
+
+            # if bl_end != surf.ndiv-1
+            #     del_iter[bl_end+1:end] .= del_iter[bl_end]
+            #     E_iter[bl_end+1:end] .= E_iter[bl_end]
+            # end
+
+            if i_sep != 0
+                println("separation detected")
+                #bl_end = i_sep-1
+                #smoothScaledEnd!(suc, del_iter, surf.ndiv-i_sep-2)
+                #smoothScaledEnd!(suc, E_iter, surf.ndiv-i_sep-2)
+            end
+
+            #smoothEnd!(del_iter, 10)
+            smoothScaledEnd!(suc, del_iter, 10)
+
             #Find suitable naca coefficients to fit the modified airfoil
 
             newthick = zeros(surf.ndiv)
@@ -228,16 +304,15 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
             newthick[surf.ndiv] = thick_orig[surf.ndiv] + (quc[surf.ndiv-1]*del_iter[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv]).^2))
 
-            bstart = [-0.1260; -0.3516; 0.2843; -0.1015; -0.0905]
+            bstart = [-0.1260; -0.3516; 0.2843; -0.1015]
 
-            #coef = find_nacaCoef(surf, newthick, bstart)
+            coef = find_nacaCoef(surf, newthick, bstart)
 
-            coef = find_nacaCoef_extend(surf, newthick, bstart)
             th = parse(Int, surf.coord_file[7:8])/100.
             b1 = 0.2969
             b = [b1; coef]
 
-            @. nacath(x) = 5*th*(b[1]*sqrt(x) + b[2]*x + b[3]*x^2 + b[4]*x^3 + b[5]*x^4 + b[6]*x^5)
+            @. nacath(x) = 5*th*(b[1]*sqrt(x) + b[2]*x + b[3]*x^2 + b[4]*x^3 + b[5]*x^4)
 
             #Find new shape of airfoil
             for i = 1:surf.ndiv
@@ -247,27 +322,51 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
             #Check for convergence
             res =  sum(abs.(del_prev .- del_iter))
-            println(iter, "   ", res," time: ",t)
+            println(iter, "   ", res)
 
             #if iter == iterMax
             if res <= resTol
-                println("converged")
+                println("converged : time ",t)
+
+                # #Re-mesh the delta to prevent spurious oscillations developing
+                # @. deltacurve(x, d) = d[1] + d[2]*x + d[3]*x^2 + d[4]*x^3 + d[5]*x^4
+                # fit = curve_fit(deltacurve, suc[:], del_iter[:], fit_d)
+                # fit_d = coef(fit)
+                # @. deltacurve(x) = fit_d[1] + fit_d[2]*x + fit_d[3]*x^2 + fit_d[4]*x^3 + fit_d[5]*x^4
+                # for i = 1:surf.ndiv-1
+                #     delu[i] = deltacurve(suc[i])
+                # end
+                # println("Remeshed delta")
+
                 delu[:] = del_iter[:]
                 Eu[:] = E_iter[:]
-		surf.deltaU[2:end] = delu[:]
-		surf.ueU[:] = qu[:] 
+
+                surf.delta[2:end] = delu[:]
+
+                surf.delta[:] = delu[:]
+
                 push!(curfield.tev, TwoDVort(xloc_tev, zloc_tev, tevstr, vcore, 0., 0.))
+                #srcstr = (del_iter[end] - del_iter[end-1])/sqrt(Re)
+                #if srcstr > 0.
+                #    srcstr = 0.
+                #end
+                #println(srcstr)
+                #push!(wk_src, TwoDSource(surf.bnd_x_u[surf.ndiv] + 0.5*surf.uref*dt, 0.5*(surf.bnd_z_u[surf.ndiv] + surf.bnd_z_l[surf.ndiv]), srcstr*20))
             end
 
-            if iter == 3 && mod(istep,10) == 0
-                #figure(1)
-                plot(surf.x, qu)
-                figure(2)
-                plot(surf.x, surf.thick)
-                axis("equal")
-                figure(3)
-                plot(surf.x[2:end], delu)
-		#@bp
+            if iter > iterMax
+                println("failed to converge")
+                delu[:] = del_iter[:]
+                Eu[:] = E_iter[:]
+                push!(curfield.tev, TwoDVort(xloc_tev, zloc_tev, tevstr, vcore, 0., 0.))
+                break
+            end
+
+            if iter == 3
+                #plot(surf.x, qu)
+                plot(surf.x[2:end], del_iter)
+                #println(del_iter)
+                #  error("here")
             end
 
         end
@@ -299,7 +398,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
         if writeflag == 1
             if istep in writeArray
                 dirname = "$(round(t,sigdigits=nround))"
-                writeStamp(dirname, t, surf, curfield, qu, ql, cpu, cpl, suc, delu, Eu, thick_orig, quc, qucx, quct)
+                writeStamp(dirname, t, surf, curfield, qu, ql, cpu, cpl)
             end
         end
 
@@ -338,3 +437,6 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
     return mat, surf, curfield
 
 end
+
+
+mat, surf, curfield = IBLnew(surf, curfield, nsteps, dtstar, startflag, writeflag, writeInterval, delvort)

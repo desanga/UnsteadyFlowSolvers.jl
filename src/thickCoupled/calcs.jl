@@ -35,9 +35,9 @@ function correlate(w)
 end
 
 function calc_Dt(lamb1::Array{Float64,1}, lamb2::Array{Float64,1}, cfl::Float64, dx::Array{Float64})
-    
+
     # calculate time step values based on eigenvalues
-    
+
     dti = cfl.*(dx./(abs.(lamb1+lamb2)))
     dt = minimum(abs.(dti))
 
@@ -105,7 +105,7 @@ function fluxReconstruction(w::Array{Float64,2}, U::Array{Float64,1}, FF::Array{
     ws = max.(wsL,wsR)
     #ws = max.(wsL+wsR)
     ww = hcat(ws,ws)
-    
+
     # flux reconstruction of left and right side of the i+1/2 interface
     fR = 0.5*((fpL + fpR) + ww.* (wipL - wipR))
     fL = [fR[end:end,:];fR[1:end-1,:]]
@@ -115,12 +115,12 @@ function fluxReconstruction(w::Array{Float64,2}, U::Array{Float64,1}, FF::Array{
     #fL[1,:] = [F[1,1]; F[1,2]]
     fL[1,:] = 0.5*((F[1,:]) - wsR[1,:].* (wipR[1,:]))
     #fL[1,:] = [0; 0]
-    
+
     #fR[end,:] = ((F[end,:]) - wsR[end,:].* (wipR[end,:]))
     fR[end,:] = [F[end,1];F[end,2]]
     #fL[end,:] .= 0
     #fR[end,:] = [0.0;0.0]
-    
+
     return fL, fR, UipL ,UipR, FFipL, FFipR, dfdeipL, dfdeipR, wipL, wipR
 
 end
@@ -201,7 +201,7 @@ function separationJ(lamb1::Array{Float64,1}, lamb2::Array{Float64,1}, dt::Float
     N2 = length(lamb2)
     lambj2 = sum(lamb2)/N2
     J2Sep = (dt)/(dx[2:end]) .* (lamb2[1:end-1] - lamb2[2:end])./ (lambj2*N2)
-    
+
     for i = 2:N2-1
         if lamb2[i] .< 0.0
             J2Sep[i] =  (dt)/(dx[i]) * (lamb2[i+1] - lamb2[i-1]) / (lambj2*N2)
@@ -221,53 +221,53 @@ function FVMIBLgridvar(w, U, Ut, Ux, dx, t, t_tot)
 
     j1 = zeros(n-1)
     j2 = zeros(n-1)
-    
+
     while t < t_tot
 
         # correlate the unknown values from the del and E values
         del, E, FF ,B, S, dfde = correlate(w)
-        
+
         fL, fR, UipL ,UipR, FFipL, FFipR, dfdeipL, dfdeipR, wipL, wipR = fluxReconstruction(w,  U, FF, dfde, del, E)
-        
+
         lamb1 ,lamb2 = calc_eigen(E, FF, dfde, U)
         dt = calc_Dt(lamb1 ,lamb2, 0.5, dx)
-        
+
         if t + dt > t_tot
             dt = t_tot - t
         end
-        
+
         # step 1 : assuming this as a homogeneous equation and advanced half a step
         w1 = w .+ ((fL - fR).*((dt/2)./(dx)))
-        
+
         del , E, FF ,B, S, dfde = correlate(w1)
-        
+
         fL, fR, UipL ,UipR, FFipL, FFipR, dfdeipL, dfdeipR, wipL, wipR = fluxReconstruction(w1, U, FF, dfde, del, E)
-        
+
         z = RHSSource(U, B, del, Ut, Ux, FF, E, S)
-        
+
         # step 2 : by considering source terms advanced a full step using 2nd order midpoint rule
         w = w + (fL - fR).* ((dt)./(dx)) .+ (dt).*z
-        
+
         t += dt
 
         #csepmax = maximum(csep)
         #println(t, "   ", maximum(csepmax), "    ", argmax(csep))
         # if csepmax > 2.
         #     println("Separation identified", "    csep=$csepmax", "   i_s=$(argmax(csep))")
-        #     i_s = argmax(csep) 
+        #     i_s = argmax(csep)
         # end
-        
+
         j1, j2 = separationJ(lamb1, lamb2, dt, dx)
         jmax = 1e-5  # maximum(j1)
         if jmax > 1e-4
             println("Separation identified", "    jsep=$jmax", "   i_s=$(argmax(j1))")
-            i_s = argmax(j1) 
+            i_s = argmax(j1)
         else
             i_s = 0
         end
-        
+
     end
-    
+
     return w, i_s
 end
 
@@ -275,7 +275,7 @@ end
 function find_nacaCoef(surf::TwoDSurfThick, thick::Array{Float64}, bstart)
 
     th = parse(Int, surf.coord_file[7:8])/100.
-    
+
     b1 = 0.2969
     
     @. nacath(x, b) = 5*th*(b1*sqrt(x) + b[1]*x + b[2]*x^2 + b[3]*x^3 + b[4]*x^4 + b[5]*x^5 + b[6]*x^6+ b[7]*x^7+ b[8]*x^8)
@@ -283,11 +283,23 @@ function find_nacaCoef(surf::TwoDSurfThick, thick::Array{Float64}, bstart)
     #@. nacath(x, b) = 5*th*(b1*sqrt(x) + b[1]*x + b[2]*x^2 + b[3]*x^3 + b[4]*x^4)
 
     fit = curve_fit(nacath, surf.x[2:end], thick[2:end], bstart)
-    
+
     b = coef(fit)
 
     return b
 end
 
+function find_nacaCoef_extend(surf::TwoDSurfThick, thick::Array{Float64}, bstart)
 
-    
+    th = parse(Int, surf.coord_file[7:8])/100.
+
+    b1 = 0.2969
+
+    @. nacath(x, b) = 5*th*(b1*sqrt(x) + b[1]*x + b[2]*x^2 + b[3]*x^3 + b[4]*x^4 + b[5]*x^5 )
+
+    fit = curve_fit(nacath, surf.x[2:end], thick[2:end], bstart)
+
+    b = coef(fit)
+
+    return b
+end
