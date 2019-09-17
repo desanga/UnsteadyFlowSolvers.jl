@@ -24,7 +24,7 @@ surf = TwoDSurfThick(geometry, pvt, full_kinem, ndiv=140, naterm=136)
 curfield = TwoDFlowField()
 
 dtstar = 0.005
-t_tot = 2.5
+t_tot = 5.0
 
 nsteps = Int(round(t_tot/dtstar))+1
 println("nsteps ", nsteps)
