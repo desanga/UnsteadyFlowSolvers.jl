@@ -180,6 +180,19 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
             #qu[:], ql[:] = calc_edgeVel(surf, [curfield.u[1], curfield.w[1]])
 qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.w[1]], phi_u, phi_l, dt)
+
+     
+            vle = qu[1]
+        
+    	    if vle > 0.
+        	    
+		    #error("time step", t)
+		    stindex = argmin(ql)
+		    println(stindex)
+       	     else
+          	  stindex = argmin(qu)
+            end
+
             surf.uind_u[:] -= uind_src[:]
             surf.uind_l[:] -= uind_src[:]
           
@@ -195,21 +208,6 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
                 quc[i] = (qu[i] + qu[i+1])/2
             end
             
-   	    dsdx = zeros(surf.ndiv)
-    	    for i = 2:surf.ndiv
-       		 dsdx[i] = sqrt(1 + (surf.cam_slope[i] + surf.thick_slope[i])^2)
-   	    end
-   	    dsdx[1] = dsdx[2]
-            su[1] = 0.
-   	    for i = 2:surf.ndiv
-       		 su[i] = simpleTrapz(dsdx[1:i], surf.x[1:i])
-   	    end
-
-	    surf.su[:] = su[:]
-
-   	    for i = 1:surf.ndiv-1
-       		 suc[i] = (su[i] + su[i+1])/2
-   	    end
            
 	   qucx[2:end] = diff(quc)./diff(suc)
             qucx[1] = qucx[2]
@@ -226,6 +224,7 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
                 quct[:] = (quc[:] - quc_prev[:])/dt
             end
 
+	    error("stop here")
             w = [delu delu.*(Eu .+ 1)]
           
            wsoln, i_sep = FVMIBLgridvar(w, quc, quct, qucx, diff(su), t-dt, t)
@@ -329,21 +328,6 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
         
         vle = qu[1]
         
-        if vle > 0.
-            qspl = Spline1D(surf.x, ql)
-            stag = try
-                roots(qspl, maxn=1)[1]
-            catch
-                0.
-            end
-        else
-            qspl = Spline1D(surf.x, qu)
-            stag = try
-                roots(qspl, maxn=1)[1]
-            catch
-                0.
-            end
-        end
         
         mat = hcat(mat,[t, surf.kinem.alpha, surf.kinem.h, surf.kinem.u, vle,
                         cl, cd, cnc, cnnc, cn, cs, stag])
