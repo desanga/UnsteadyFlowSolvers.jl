@@ -53,6 +53,8 @@ mutable struct TwoDSurfThick
     thick_a::Vector{Float64}
     su::Vector{Float64}
     su_i::Vector{Float64}
+    qustlen::Float64
+    qlstlen::Float64
 
     function TwoDSurfThick(coord_file, pvt, kindef,lespcrit=zeros(1); c=1., uref=1., ndiv=70, naterm=35, initpos = [0.; 0.])
         theta = zeros(ndiv); x = zeros(ndiv); cam = zeros(ndiv); cam_slope = zeros(ndiv)
@@ -66,7 +68,9 @@ mutable struct TwoDSurfThick
 	thick_a = zeros(ndiv) 
         su = zeros(ndiv) 
 	su_i = zeros(ndiv) 
-
+	
+     	qustlen = 0.
+    	qlstlen = 0.
         kinem = KinemPar(0, 0, 0, 0, 0, 0)
 
         dtheta = pi/(ndiv-1)

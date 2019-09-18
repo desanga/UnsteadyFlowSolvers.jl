@@ -188,10 +188,42 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
         	    
 		    #error("time step", t)
 		    stindex = argmin(ql)
-		    println(stindex)
+		    println("stagnation index ",stindex)
+		    println(stindex) 
+	  	    qustag = [reverse(ql[1:stindex]);qu] 
+	  	    qlstag = ql[stindex+1:end]
+		  
+		    qustlen = length(qustag)
+                    qlstlen = length(qlstag)
+		    xustag = zeros(qustlen)
+		    xlstag = zeros(qlstlen)
+		    xustag = [reverse(surf.x[1:stindex]);surf.x]
+		    xlstag = surf.x[stindex+1:end]
+
+		    surf.qlstlen = qlstlen
+		    surf.qustlen = qustlen
+		    #suUstag = su[] 
+
+		    #suLstag =
+
        	     else
-          	  stindex = argmin(qu)
-            end
+          	    stindex = argmin(qu) 
+	  	    qustag = qu[stindex+1:end] 
+	  	    qlstag = [reverse(qu[1:stindex]);ql[stindex+1:end]]
+                   
+		    qustlen = length(qustag)
+                    qlstlen = length(qlstag)
+			
+		    surf.qlstlen = qlstlen
+		    surf.qustlen = qustlen
+
+		    xustag = zeros(qustlen)
+		    xlstag = zeros(qlstlen)
+
+	     end
+
+	  # qustag = [reverse(ql[1:stindex]);qu] 
+	 #  qlstag = ql[stindex+1:end]
 
             surf.uind_u[:] -= uind_src[:]
             surf.uind_l[:] -= uind_src[:]
@@ -203,9 +235,13 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
             
             smoothScaledEnd!(surf.x, qu,10)
             smoothScaledEnd!(surf.x, ql,10)           
+
             #Solve the FV problem at cell centres
+
             for i = 1:surf.ndiv-1
                 quc[i] = (qu[i] + qu[i+1])/2
+		qlc[i] = (ql[i] + ql[i+1])/2
+
             end
             
            
@@ -217,14 +253,18 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 	    surf.ueU[:] = qu[:] 
 	    surf.ueL[:] = ql[:] 
 
+	   figure("upper stagnation")
+	   plot(xustag, qustag)
+	   figure("lower stagnation")
+	   plot(xlstag, qlstag)	
 
+	   error("stop here")
             if istep == 1
                 quct[:] .= 0.
             else
                 quct[:] = (quc[:] - quc_prev[:])/dt
             end
 
-	    error("stop here")
             w = [delu delu.*(Eu .+ 1)]
           
            wsoln, i_sep = FVMIBLgridvar(w, quc, quct, qucx, diff(su), t-dt, t)
@@ -277,7 +317,7 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
                 delu[:] = del_iter[:]
                 Eu[:] = E_iter[:]
 		surf.deltaU[2:end] = delu[:]
-		surf.ueU[:] = qu[:] 
+		#surf.ueU[:] = qu[:] 
                 push!(curfield.tev, TwoDVort(xloc_tev, zloc_tev, tevstr, vcore, 0., 0.))
             end
 
@@ -325,8 +365,6 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
         end
         
         #LE velocity and stagnation point location
-        
-        vle = qu[1]
         
         
         mat = hcat(mat,[t, surf.kinem.alpha, surf.kinem.h, surf.kinem.u, vle,
