@@ -17,7 +17,6 @@ mutable struct TwoDSurfThick
     cam_slope :: Vector{Float64}
     thick :: Vector{Float64}
     thick_slope :: Vector{Float64}
-    thick_slope_orig :: Vector{Float64}
     theta :: Vector{Float64}
     x :: Vector{Float64}
     kinem :: KinemPar
@@ -59,8 +58,7 @@ mutable struct TwoDSurfThick
 
     function TwoDSurfThick(coord_file, pvt, kindef,lespcrit=zeros(1); c=1., uref=1., ndiv=70, naterm=35, initpos = [0.; 0.])
         theta = zeros(ndiv); x = zeros(ndiv); cam = zeros(ndiv); cam_slope = zeros(ndiv)
-        thick = zeros(ndiv); thick_slope = zeros(ndiv); bnd_x_u = zeros(ndiv); bnd_z_u = zeros(ndiv); thick_slope_orig = zeros(ndiv);
-        bnd_x_l = zeros(ndiv); bnd_z_l = zeros(ndiv); bnd_x_chord = zeros(ndiv); bnd_z_chord = zeros(ndiv)
+        thick = zeros(ndiv); thick_slope = zeros(ndiv); bnd_x_u = zeros(ndiv); bnd_z_u = zeros(ndiv);bnd_x_l = zeros(ndiv); bnd_z_l = zeros(ndiv); bnd_x_chord = zeros(ndiv); bnd_z_chord = zeros(ndiv)
         deltaU = zeros(ndiv)
 	ueU = zeros(ndiv)	
 
@@ -83,7 +81,6 @@ mutable struct TwoDSurfThick
         thick, thick_slope, rho, cam, cam_slope = camber_thick_calc(x, coord_file)
 
         kinem = KinemPar(0., 0., 0., 0., 0., 0.)
-	thick_slope_orig[:] = thick_slope[:]
 
         if (typeof(kindef.alpha) == EldUpDef)
             kinem.alpha = kindef.alpha(0.)
@@ -216,6 +213,6 @@ mutable struct TwoDSurfThick
         # end
         levflag = [0;]
 
-        new(c, uref, coord_file, pvt, ndiv, naterm, kindef, cam, cam_slope, thick, thick_slope, theta, x, kinem, bnd_x_u, bnd_z_u, bnd_x_l, bnd_z_l, bnd_x_chord, bnd_z_chord, uind_u, uind_l, wind_u, wind_l, downwash, a0, aterm, a0dot, adot, a0prev, aprev, bterm, bv, src, lespcrit, levflag, initpos, rho, LHS, RHS, deltaU,deltaL, ueU, ueL, thick_a, su, su_i, thick_slope_orig) 
+        new(c, uref, coord_file, pvt, ndiv, naterm, kindef, cam, cam_slope, thick, thick_slope, theta, x, kinem, bnd_x_u, bnd_z_u, bnd_x_l, bnd_z_l, bnd_x_chord, bnd_z_chord, uind_u, uind_l, wind_u, wind_l, downwash, a0, aterm, a0dot, adot, a0prev, aprev, bterm, bv, src, lespcrit, levflag, initpos, rho, LHS, RHS, deltaU,deltaL, ueU, ueL, thick_a, su, su_i) 
     end
 end
