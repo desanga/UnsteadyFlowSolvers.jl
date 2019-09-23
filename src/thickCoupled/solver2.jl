@@ -233,8 +233,8 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
             surf.uind_l[:] -= ind_new_u_l[:]
             surf.wind_l[:] -= ind_new_w_l[:]
             
-            smoothScaledEnd!(surf.x, qu,10)
-            smoothScaledEnd!(surf.x, ql,10)           
+            smoothScaledEnd!(xustag, qustag,10)
+            smoothScaledEnd!(xlstag, qlstag,10)           
 
             #Solve the FV problem at cell centres
 
@@ -257,6 +257,7 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 	   plot(xustag, qustag)
 	   figure("lower stagnation")
 	   plot(xlstag, qlstag)	
+	   surf.su[:] = su[:]
 
 	   error("stop here")
             if istep == 1
