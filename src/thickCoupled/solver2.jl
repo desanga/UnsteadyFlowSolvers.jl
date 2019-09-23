@@ -202,9 +202,7 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 
 		    surf.qlstlen = qlstlen
 		    surf.qustlen = qustlen
-		    #suUstag = su[] 
 
-		    #suLstag =
 
        	     else
           	    stindex = argmin(qu) 
