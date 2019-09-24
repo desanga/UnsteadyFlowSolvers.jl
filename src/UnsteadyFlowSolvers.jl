@@ -184,7 +184,7 @@ include("thick2D/postprocess.jl")         # postprocessing functions
 include("thickCoupled/calcs.jl")               # calculation functions
 include("thickCoupled/solver2.jl")             # solver methods
 include("thickCoupled/postprocess.jl")         # postprocessing functions
-include("thickCoupled/thickCoupled1.jl")
+include("thickCoupled/thickCoupled2.jl")
 
 # 2D plotting functions
 include("plots/plots2D.jl")

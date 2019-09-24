@@ -41,8 +41,8 @@ dsdx_upper = zeros(length(camber_slope_upper))
 dsdx_lower = zeros(length(camber_slope_lower))
 
 
-su = zeros(length(camber_slope_upper))
-sl = zeros(length(camber_slope_lower))
+su = zeros(length(x_u))
+sl = zeros(length(x_l))
 
 
 for i = 1:length(camber_slope_upper)
@@ -58,11 +58,11 @@ end
 su[1] = 0.
 sl[1] = 0.
 
- for i = 1:length(camber_slope_upper)
+ for i = 2:length(camber_slope_upper)
        su[i] = simpleTrapz(dsdx_upper[1:i], x_u[1:i])
  end
 
- for i = 1:length(camber_slope_lower)
+ for i = 2:length(camber_slope_lower)
        sl[i] = simpleTrapz(dsdx_lower[1:i], x_l[1:i])
  end
 
@@ -70,7 +70,7 @@ return x_u, x_l, su, sl, qustag, qlstag
 
 end
 
-function createUpperLowerRemapping(stgIndex::Int64, surf::TwoDSurfThick)
+function createUpperLowerRemapping(stgIndex::Int64, delu::Array{Float64}, dell::Array{Float64})
 
 
 
