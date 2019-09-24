@@ -150,7 +150,8 @@ export
     IBL_shape_attached,
     IBL_vel_attached,
     find_nacaCoef,
-    smoothScaledEnd!
+    smoothScaledEnd!,
+    createUpperLowerMapping
 
 
 
@@ -183,6 +184,7 @@ include("thick2D/postprocess.jl")         # postprocessing functions
 include("thickCoupled/calcs.jl")               # calculation functions
 include("thickCoupled/solver2.jl")             # solver methods
 include("thickCoupled/postprocess.jl")         # postprocessing functions
+include("thickCoupled/thickCoupled1.jl")
 
 # 2D plotting functions
 include("plots/plots2D.jl")
