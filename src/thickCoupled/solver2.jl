@@ -111,10 +111,15 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
         iter = 0
         res = 1
-        del_iter = zeros(surf.ndiv-1)
-        del_prev = zeros(surf.ndiv-1)
+       delu_iter = zeros(surf.ndiv-1)
+        delu_prev = zeros(surf.ndiv-1)
+   
+	dell_iter = zeros(surf.ndiv-1)
+	dell_prev = zeros(surf.ndiv-1)
+	El_iter = zeros(surf.ndiv-1)
+	Eu_iter = zeros(surf.ndiv-1)
+
         soln = zeros(2*surf.naterm+1)
-        E_iter = zeros(surf.ndiv-1)
 
     	stindex = 0.
         stindex_prev = 0.
