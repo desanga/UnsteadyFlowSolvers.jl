@@ -49,8 +49,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
     suc = zeros(surf.ndiv-1)
 
     ql =  zeros(surf.ndiv) 
-    #qlc = zeros(surf.ndiv-1)
-    qluc_prev = zeros(surf.ndiv-1)
+    qlc = zeros(surf.ndiv-1)
+    qlc_prev = zeros(surf.ndiv-1)
     ql_prev = zeros(surf.ndiv)
     qlcx = zeros(surf.ndiv-1)
     qlct = zeros(surf.ndiv-1)
@@ -61,7 +61,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
     thick_slope_orig[:] = surf.thick_slope[:]
 
    #Initialise boundary layer
-    #delu,dell, Eu, El = initDelE(surf.ndiv-1)
+    delu,dell, Eu, El = initDelE(surf.ndiv-1)
 
     
     dsdx = zeros(surf.ndiv)
@@ -121,8 +121,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
         quc_prev[:] = quc[:]       
         qlc_prev[:] = qlc[:]       
-	qu_prev[:] = qu[:]
-	ql_prev[:] = ql[:]
+#	qu_prev[:] = qu[:]
+#	ql_prev[:] = ql[:]
         
         #while (iter < iterMax)
         while res > resTol
@@ -198,19 +198,18 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 		   stindex = argmin(ql)
 		   println("stagnation index ",stindex)
 		   println(stindex) 
-		   x_u, x_l, su, sl, qustag, qlstag, qustag_prev, qlstag_prev  = reconstructGrid(stindex, surf, su, qu, ql, qu_prev, ql_prev)
+		   x_u, x_l, su, sl, qustag, qlstag, qustag_prev, qlstag_prev, delustag, dellstag, Eustag, Elstag = reconstructGrid(stindex, surf, su, qu, ql, qu_prev, ql_prev, delu, dell, Eu, El)
 
 		
 		   upper_size = length(x_u) 
 		   lower_size = length(x_l)
 		   println("maximum upper ",maximum(x_u))
-	#	   println("upper size ",upper_size)
 		   
 		   qustagc = zeros(upper_size-1)
 		   qlstagc = zeros(lower_size-1)
 		   
-		   qucstag_prev = zeros(upper_size-1)	
-		   qlcstag_prev = zeros(lower_size-1)
+		   qustagc_prev = zeros(upper_size-1)	
+		   qlstagc_prev = zeros(lower_size-1)
 
 
 		   qustagx =  zeros(upper_size-1)
@@ -237,7 +236,8 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 
 		   qustagc_prev[1:end] = (qustag_prev[1:end-1] + qustag_prev[2:end])./2	
 		   qlstagc_prev[1:end] = (qlstag_prev[1:end-1] + qlstag_prev[2:end])./2	
-		   delu,dell, Eu, El = initDelE(upper_size-1, lower_size-1)	
+		   #delu,dell, Eu, El = initDelE(upper_size-1, lower_size-1)	
+
        	     
 	     else
           	    stindex = argmin(qu) 
@@ -257,7 +257,7 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 
 	  # qustag = [reverse(ql[1:stindex]);qu] 
 	 #  qlstag = ql[stindex+1:end]
-
+	   # error("2 stop here")
             surf.uind_u[:] -= uind_src[:]
             surf.uind_l[:] -= uind_src[:]
           
@@ -290,14 +290,6 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 	   # surf.ueU[:] = qu[:] 
 	   # surf.ueL[:] = ql[:] 
 
-	   figure("velocity")
-	   plot(x_u, qustag, label="upper")
-	   #figure("lower stagnation")
-	   plot(x_l, qlstag, label="lower")
-	  # legend()
-	  # surf.su[:] = su[:]
-
-	   error("stop here")
             if istep == 1
              qustagct[:] .= 0.
 	     qlstagct[:] .= 0.
@@ -308,8 +300,8 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 
             end
 
-            wu = [delu delu.*(Eu .+ 1)]
-            wl = [dell dell.*(El .+ 1)]
+            wu = [delustag delustag.*(Eustag .+ 1)]
+            wl = [dellstag dellstag.*(Elstag .+ 1)]
 
            wusoln, i_sepu = FVMIBLgridvar(wu, qustagc, qustagct, qustagx, diff(su), t-dt, t)
            wlsoln, i_sepl = FVMIBLgridvar(wl, qlstagc, qlstagct, qlstagx, diff(sl), t-dt, t)
@@ -326,7 +318,7 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
             smoothScaledEnd!(suc, delu_iter, 10)
             smoothScaledEnd!(slc, dell_iter, 10)
 	    
-	    deluu, delll, quc, qlc = reverseReconstructGrid(stindex, delu_iter, dell_iter,qustagc, qlstagc)   
+	    deluu, delll, Euu, Ell, quc, qlc = reverseReconstructGrid(stindex, surf, delu_iter, dell_iter,qustagc, qlstagc)   
 
 
             
@@ -346,10 +338,14 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 		newthick[i] = thick_orig[i] + thicjUpdate[i] 
             end
             
-            newthick[surf.ndiv] = thick_orig[surf.ndiv] + (quc[surf.ndiv-1]*del_iter[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv]).^2))
+	    thickconU[surf.ndiv] =  (quc[surf.ndiv-1]*deluu[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv]).^2)) 
+	    thickconL[surf.ndiv] = (qlc[surf.ndiv-1]*delll[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv]).^2))  
+
+            newthick[surf.ndiv] = thick_orig[surf.ndiv] + 0.5*(thickconU[surf.ndiv] + thickconL[surf.ndiv]) 
 
             surf.thick_a[:] = newthick[:]
-            bstart = [-0.1260; -0.3516; 0.2843; -0.1015; 0.0; 0.0; 0.0; 0.0]
+           
+	    bstart = [-0.1260; -0.3516; 0.2843; -0.1015; 0.0; 0.0; 0.0; 0.0]
 
             coef = find_nacaCoef(surf, newthick, bstart)
 
@@ -366,18 +362,25 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
             end
             
             #Check for convergence
-            res =  sum(abs.(del_prev .- del_iter))
+            res =  sum(abs.(delu_prev .- delu_iter)) + sum(abs.(dell_prev .- dell_iter))
+
             println(iter, "   ", res," time: ",t)
 
 
             #if iter == iterMax
             if res <= resTol
                 println("converged")
-                delu[:] = del_iter[:]
-                Eu[:] = E_iter[:]
+                delu[:] = deluu[:]
+                Eu[:] = Euu[:]
+
+                dell[:] = delll[:]
+                El[:] = Ell[:]
+
+
 		surf.deltaU[2:end] = delu[:]
 		#surf.ueU[:] = qu[:] 
                 push!(curfield.tev, TwoDVort(xloc_tev, zloc_tev, tevstr, vcore, 0., 0.))
+		error("1st iterations")
             end
 
             if iter == 3 && mod(istep,10) == 0
