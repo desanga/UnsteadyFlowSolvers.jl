@@ -53,8 +53,8 @@ function reverseReconstructGrid(stgIndex::Int64, surf::TwoDSurfThick, delu::Arra
 #	deluu[:] = delu[stgIndex:end];
 #	delll[:] = [reverse(delu[1:stgIndex]);dell[2:end]]
 
-	qu[:] = qustag[stgIndex:end];
-	ql[:] = [reverse(qustag[1:stgIndex]);qlstag[2:end]]
+	quc[:] = qustag[stgIndex:end];
+	qlc[:] = [reverse(qustag[1:stgIndex]);qlstag[2:end]]
 
 	return deluu, delll, Euu, Ell,  quc, qlc
 end
