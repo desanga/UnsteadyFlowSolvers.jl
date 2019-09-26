@@ -9,6 +9,21 @@ function initDelE(n)
 
 end
 
+function initDelE(upper_n, lower_n)
+
+    Eu = 0.4142 * ones(upper_n)
+    Bu = 131.9*Eu.^3 - 167.32*Eu.^2 + 76.642.*Eu .- 11.068
+    delu = sqrt.(Bu.*0.005)
+
+
+    El = 0.4142 * ones(lower_n)
+    Bl = 131.9*El.^3 - 167.32*El.^2 + 76.642.*El .- 11.068
+    dell = sqrt.(Bl.*0.005)
+
+    #Same for upper and lower surface at initialisation
+    return delu, dell, Eu, El
+
+end
 
 function correlate(w)
 
