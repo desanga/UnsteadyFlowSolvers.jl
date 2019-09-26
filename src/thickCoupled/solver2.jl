@@ -188,7 +188,7 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 
      
             vle = qu[1]
-	    surf.su[:] = su[:]
+	    #surf.su[:] = su[:]
 
 	    surf.ueU[:] = qu[:] 
 	    surf.ueL[:] = ql[:] 
@@ -318,8 +318,7 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
             smoothScaledEnd!(suc, delu_iter, 10)
             smoothScaledEnd!(slc, dell_iter, 10)
 	    
-	    deluu, delll, Euu, Ell, quc, qlc = reverseReconstructGrid(stindex, surf, delu_iter, dell_iter,qustagc, qlstagc)   
-
+	    deluu, delll, Euu, Ell, quc, qlc = reverseReconstructGrid(stindex, surf, delu_iter, dell_iter,Eu_iter, El_iter, qustagc, qlstagc)   
 
             
 	    #Find suitable naca coefficients to fit the modified airfoil
@@ -335,7 +334,7 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 	    	thickconU[i] =  (quc[i]*deluu[i])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[i]).^2))
 	    	thickconL[i] =  (qlc[i]*delll[i])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[i]).^2))
                 thickUpdate[i] = (thickconU[i] + thickconL[i])/2
-		newthick[i] = thick_orig[i] + thicjUpdate[i] 
+		newthick[i] = thick_orig[i] + thickUpdate[i] 
             end
             
 	    thickconU[surf.ndiv] =  (quc[surf.ndiv-1]*deluu[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv]).^2)) 
