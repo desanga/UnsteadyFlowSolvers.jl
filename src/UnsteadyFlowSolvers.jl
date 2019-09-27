@@ -151,7 +151,8 @@ export
     IBL_vel_attached,
     find_nacaCoef,
     smoothScaledEnd!,
-    createUpperLowerMapping
+    reconstructGrid,
+    reverseReconstructGrid
 
 
 
