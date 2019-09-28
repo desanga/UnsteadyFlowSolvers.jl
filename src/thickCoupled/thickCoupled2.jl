@@ -40,8 +40,11 @@ return x_u, x_l, s_u, s_l, qustag, qlstag, qustag_prev, qlstag_prev, delustag, d
 
 end
 
-function reverseReconstructGrid(stgIndex::Int64, surf::TwoDSurfThick, qustagc::Array{Float64}, qlstagc::Array{Float64}, qustagc_prev::Array{Float64}, qlstagc_prev::Array{Float64}, delustag::Array{Float64}, dellstag::Array{Float64}, Eustag::Array{Float64}, Elstag::Array{Float64}, dellstag_iter::Array{Float64}, delustag_iter::Array{Float64}, dellstag_prev::Array{Float64}, Eustag_iter::Array{Float64}, Elstag_iter::Array{Float64})
+function reverseReconstructGrid(stgIndex::Int64, surf::TwoDSurfThick, qustag::Array{Float64}, qlstag::Array{Float64}, qustagc::Array{Float64}, qlstagc::Array{Float64}, qustagc_prev::Array{Float64}, qlstagc_prev::Array{Float64}, delustag::Array{Float64}, dellstag::Array{Float64}, Eustag::Array{Float64}, Elstag::Array{Float64}, dellstag_iter::Array{Float64}, delustag_iter::Array{Float64}, delustag_prev::Array{Float64}, dellstag_prev::Array{Float64}, Eustag_iter::Array{Float64}, Elstag_iter::Array{Float64})
 
+
+	quc = zeros(surf.ndiv-1)
+	qlc = zeros(surf.ndiv-1)
 	delu = zeros(surf.ndiv-1)
 	dell = zeros(surf.ndiv-1)
 	Eu = zeros(surf.ndiv-1)
@@ -50,6 +53,22 @@ function reverseReconstructGrid(stgIndex::Int64, surf::TwoDSurfThick, qustagc::A
 	qlc_prev = zeros(surf.ndiv-1)
 	quc_prev = zeros(surf.ndiv-1)
 	qlc_prev = zeros(surf.ndiv-1)
+	qu  =  zeros(surf.ndiv)
+	ql = zeros(surf.ndiv)
+
+	quc_prev =  zeros(surf.ndiv-1)
+	qlc_prev =  zeros(surf.ndiv-1)
+
+
+	delu_iter =  zeros(surf.ndiv-1)
+	dell_iter =  zeros(surf.ndiv-1)
+
+	delu_prev =  zeros(surf.ndiv-1)
+	dell_prev =  zeros(surf.ndiv-1)
+
+	Eu_iter =  zeros(surf.ndiv-1)
+	El_iter =  zeros(surf.ndiv-1)
+
 
 	delu[:] = delustag[stgIndex:end]
 	dell[:] = [reverse(delustag[1:stgIndex]);dellstag[2:end]]
@@ -59,6 +78,10 @@ function reverseReconstructGrid(stgIndex::Int64, surf::TwoDSurfThick, qustagc::A
 
 	quc[:] = qustagc[stgIndex:end]
 	qlc[:] = [reverse(qustagc[1:stgIndex]);qlstagc[2:end]]
+
+	 
+	qu[:] = qustag[stgIndex:end]
+	ql[:] = [reverse(qustag[1:stgIndex]);qlstagc[1:end]]
 	 
 	quc_prev[:] = qustagc_prev[stgIndex:end]
 	qlc_prev[:] = [reverse(qlstagc_prev[1:stgIndex]);qlstagc_prev[2:end]]
@@ -73,7 +96,7 @@ function reverseReconstructGrid(stgIndex::Int64, surf::TwoDSurfThick, qustagc::A
 	El_iter[:] = [reverse(Eustag_iter[1:stgIndex]);Elstag_iter[2:end]]
 
 
-	return quc, qlc, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter
+	return qu, ql, quc, qlc, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter
 
 	end
 

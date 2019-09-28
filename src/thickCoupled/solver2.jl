@@ -63,6 +63,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
    #Initialise boundary layer
     delu,dell, Eu, El = initDelE(surf.ndiv-1)
 
+    vle = 0.
+    stindex = 0.
     
     dsdx = zeros(surf.ndiv)
     for i = 2:surf.ndiv
@@ -122,8 +124,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
         soln = zeros(2*surf.naterm+1)
 
-    	stindex = 0.
-        stindex_prev = 0.
+    	#stindex = 0.
+        #stindex_prev = 0.
         resTol = 1e-5
         iterMax = 10
 
@@ -191,8 +193,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             surf.uind_l[:] += ind_new_u_l[:]
             surf.wind_l[:] += ind_new_w_l[:]
 
-            #qu[:], ql[:] = calc_edgeVel(surf, [curfield.u[1], curfield.w[1]])
-qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.w[1]], phi_u, phi_l, dt)
+	     qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.w[1]], phi_u, phi_l, dt)
 
      
             vle = qu[1]
@@ -204,15 +205,14 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
     	    if vle > 0.
         	    
 		 stindex = argmin(ql)
-	  # if stindex_prev == stindex
-		 println("stagnation index ",stindex)
-		 println(stindex)
+		 #println("stagnation index ",stindex)
+		# println(stindex)
 
-		   x_u, x_l, su, sl, qustag, qlstag, qustag_prev, qlstag_prev, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, delustag_prev, dellstag_prev, Eustag_iter, Elstag_iter = reconstructGrid(stindex, surf, s, qu, ql, qu_prev, ql_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter)
+		 x_u, x_l, su, sl, qustag, qlstag, qustag_prev, qlstag_prev, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, delustag_prev, dellstag_prev, Eustag_iter, Elstag_iter = reconstructGrid(stindex, surf, s, qu, ql, qu_prev, ql_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter)
 	
 		 upper_size = length(x_u) 
 		 lower_size = length(x_l)
-		 println("maximum upper ",maximum(x_u))
+		 #println("maximum upper ",maximum(x_u))
 	   
 		 qustagc = zeros(upper_size-1)
 		 qlstagc = zeros(lower_size-1)
@@ -236,7 +236,6 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 		 qustagc_prev[1:end] = (qustag_prev[1:end-1] + qustag_prev[2:end])./2	
 		 qlstagc_prev[1:end] = (qlstag_prev[1:end-1] + qlstag_prev[2:end])./2	
 
-       	    #end 
 	     else
           	    stindex = argmin(qu) 
 	  	    qustag = qu[stindex+1:end] 
@@ -253,9 +252,6 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 
 	     end
 
-	  # qustag = [reverse(ql[1:stindex]);qu] 
-	 #  qlstag = ql[stindex+1:end]
-	   # error("2 stop here")
             surf.uind_u[:] -= uind_src[:]
             surf.uind_l[:] -= uind_src[:]
           
@@ -316,9 +312,10 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
             smoothScaledEnd!(suc, delustag_iter, 10)
             smoothScaledEnd!(slc, dellstag_iter, 10)
 	    
-	    quc, qlc, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter = reverseReconstructGrid(stindex, surf, qustagc, qlstagc, qustagc, qlstagc, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, dellstag_prev, dellstag_prev, Eustag_iter, Elstag_iter)
 
-   
+
+	    
+	   qu, ql, quc, qlc, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter = reverseReconstructGrid(stindex, surf, qustag, qlstag,  qustagc, qlstagc, qustagc_prev, qlstagc_prev, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, delustag_prev, dellstag_prev, Eustag_iter, Elstag_iter)
 
             
 	    #Find suitable naca coefficients to fit the modified airfoil
@@ -359,12 +356,10 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
                 surf.thick[i] = nacath(surf.x[i])
                 surf.thick_slope[i] = ForwardDiff.derivative(nacath, surf.x[i])
             end
+	    println(iter, "   ", res," time: ",t)
             
             #Check for convergence
             res =  sum(abs.(delu_prev .- delu_iter)) #+ sum(abs.(dell_prev .- dell_iter))
-
-            println(iter, "   ", res," time: ",t)
-	    stindex_prev = stindex
 
             #if iter == iterMax
             if res <= resTol
@@ -379,17 +374,20 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 		surf.deltaU[2:end] = delu[:]
 		#surf.ueU[:] = qu[:] 
                 push!(curfield.tev, TwoDVort(xloc_tev, zloc_tev, tevstr, vcore, 0., 0.))
-		error("1st iterations")
             end
 
             if iter == 3 && mod(istep,10) == 0
-                figure(1)
+                figure("Edge velocity")
                 plot(surf.x, qu)
-                figure(2)
+		plot(surf.x, ql)
+
+                figure("Thickness")
                 plot(surf.x, surf.thick)
                 axis("equal")
-                figure(3)
+
+                figure("delta distri bution")
                 plot(surf.x[2:end], delu)
+		#error("first plot")
             end
             
         end
@@ -428,8 +426,8 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
         #LE velocity and stagnation point location
         
         
-        mat = hcat(mat,[t, surf.kinem.alpha, surf.kinem.h, surf.kinem.u, vle,
-                        cl, cd, cnc, cnnc, cn, cs, stag])
+        mat = hcat(mat,[t, surf.kinem.alpha, surf.kinem.h, surf.kinem.u,
+                        cl, cd, cnc, cnnc, cn, cs, vle, stindex])
 
     end    
 
