@@ -403,6 +403,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
                 figure("delta distri bution")
                 plot(surf.x[2:end], delu)
+		figure("delta Lower")
+                plot(surf.x[2:end], dell)
 		#error("first plot")
             end
             
