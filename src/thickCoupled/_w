@@ -167,9 +167,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             #surf.uind_l[:] += ind_new_u_l[:]
             #surf.wind_l[:] += ind_new_w_l[:]
 
-	    qdel = (quc[end]*delu_iter[end] + qlc[end]*dell_iter[end])/2
-
-            a_wfn = log10(2*qdel/sqrt(Re))
+            a_wfn = log10(2*quc[end]*delu_iter[end]/sqrt(Re))
             wfn[1] = 2*(quc[end]*delu_iter[end] - quc[end-1]*delu_iter[end-1])/(sqrt(Re)*(surf.x[end] - surf.x[end-1]))
             for i = 2:nw
              #  wfn[i] = (10^(a_wfn - 3.2*(x_w[i] - surf.c)) - 10^(a_wfn - 3.2*(x_w[i] - 1.)))/(x_w[i] - x_w[i-1])
@@ -211,10 +209,11 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 		 stindex = argmin(ql)
 		# println("stagnation index ",stindex)
 		 #println(stindex)
-		 #error("stop")
-		
+		 if stindex == 140
+		 	error("stop")
+	       	 end
 		@bp
-		 x_u, x_l, su, sl, qustag, qlstag, qustag_prev, qlstag_prev, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, delustag_prev, dellstag_prev, Eustag_iter, Elstag_iter = reconstructGrid(stindex, surf, s, qu, ql, qu_prev, ql_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter)
+		 x_u, x_l, su, sl, qustag, qlstag, qustag_prev, qlstag_prev, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, delustag_prev, dellstag_prev, Eustag_iter, Elstag_iter = reconstructGrid(stindex, surf, s, qu, ql, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter)
 	
 		 upper_size = length(x_u) 
 		 lower_size = length(x_l)
@@ -239,8 +238,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 		 suc[1:end] = (su[2:end] + su[1:end-1])./2
 		 slc[1:end] = (sl[2:end] + sl[1:end-1])./2
 
-		 qustagc_prev[1:end] = (qustag_prev[1:end-1] + qustag_prev[2:end])./2	
-		 qlstagc_prev[1:end] = (qlstag_prev[1:end-1] + qlstag_prev[2:end])./2	
+		 qustagc_prev[:] = qustag_prev[:] 	
+		 qlstagc_prev[:] = qlstag_prev[:]	
 
 	     else
           	    stindex = argmin(qu) 
@@ -320,12 +319,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             smoothScaledEnd!(slc, dellstag_iter, 10)
 	    
 
-	    
-
-	    
-	    #quc, qlc, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter = reverseReconstructGrid(stindex, surf, qustag, qlstag,  qustagc, qlstagc, qustagc_prev, qlstagc_prev, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, delustag_prev, dellstag_prev, Eustag_iter, Elstag_iter)
-
-	 quc, qlc, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter = reverseReconstructGrid(stindex, surf, qustag, qlstag,  qustagc, qlstagc, qustagc_prev, qlstagc_prev, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, delustag_prev, dellstag_prev, Eustag_iter, Elstag_iter)
+	    quc, qlc, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter = reverseReconstructGrid(stindex, surf, qustag, qlstag,  qustagc, qlstagc, qustagc_prev, qlstagc_prev, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, delustag_prev, dellstag_prev, Eustag_iter, Elstag_iter)
 	   
 	   #figure("dell")
 	   #plot(dellstag_iter)		
@@ -357,7 +351,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 	    #end
             surf.thick_a[:] = newthick[:]
            
-	    bstart = [-0.1260; -0.3516; 0.2843; -0.1015; 0.0; 0.0; 0.0; 0.0]
+	   bstart = [-0.1260; -0.3516; 0.2843; -0.1015; 0.0; 0.0; 0.0; 0.0]
 
             coef = find_nacaCoef(surf, newthick, bstart)
 
@@ -365,21 +359,23 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             b1 = 0.2969
             b = [b1; coef]
             
-            @. nacath(x) = 5*th*(b[1]*sqrt(x) + b[2]*x + b[3]*x^2 + b[4]*x^3 + b[5]*x^4 + b[6]*x^5 + b[7]*x^6 + b[8]*x^7 + b[9]*x^8)
+	    @. nacath(x) = 5*th*(b[1]*sqrt(x) + b[2]*x + b[3]*x^2 + b[4]*x^3 + b[5]*x^4 + b[6]*x^5 + b[7]*x^6 + b[8]*x^7 + b[9]*x^8)
             
             #Find new shape of airfoil
             for i = 1:surf.ndiv
                 surf.thick[i] = nacath(surf.x[i])
                 surf.thick_slope[i] = ForwardDiff.derivative(nacath, surf.x[i])
             end
-	    println(iter, "   ", res," time: ",t)
+	    println(iter, "   ", res," time: ",t, " stindex: ", stindex)
             
             #Check for convergence
-            res =  sum(abs.(delustag_prev .- delustag_iter)) #+ sum(abs.(dellstag_prev .- dellstag_iter))
+            res =  (sum(abs.(delustag_prev .- delustag_iter)) #+ sum(abs.(dellstag_prev .- dellstag_iter))) 
+            resL =   sum(abs.(dellstag_prev .- dellstag_iter))
 
             #if iter == iterMax
             if res <= resTol
                 println("converged")
+		println("Lower resolution ",resL)
                 delu[:] = delu_iter[:]
                 Eu[:] = Eu_iter[:]
 
@@ -393,16 +389,16 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             end
 
             if iter == 3 && mod(istep,10) == 0
-                #figure("Edge velocity")
-                #plot(surf.x, qu)
-		#plot(surf.x, ql)
+                figure("Edge velocity")
+                plot(surf.x, qu) 
+		plot(surf.x, ql)
 
-                #figure("Thickness")
-                #plot(surf.x, surf.thick)
-                #axis("equal")
+                figure("Thickness")
+                plot(surf.x, surf.thick)
+                axis("equal")
 
-                #figure("delta distri bution")
-                #plot(surf.x[2:end], delu)
+                figure("delta distri bution")
+                plot(surf.x[2:end], delu)
 		#error("first plot")
             end
             
