@@ -394,9 +394,9 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
             if iter == 3 && mod(istep,10) == 0
                 figure("Edge velocity")
+		clf()
                 plot(surf.x, qu) 
 		plot(surf.x, ql)
-
                 figure("Thickness")
                 plot(surf.x, surf.thick)
                 axis("equal")
@@ -405,6 +405,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
                 plot(surf.x[2:end], delu)
 		figure("delta Lower")
                 plot(surf.x[2:end], dell)
+
 		#error("first plot")
             end
             
