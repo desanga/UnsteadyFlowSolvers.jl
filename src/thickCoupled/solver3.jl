@@ -1,6 +1,3 @@
-using LinearAlgebra
-
-
 function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, nsteps::Int64 = 300, dtstar::Float64 = 0.015, startflag = 0, writeflag = 0, writeInterval = 1000., delvort = delNone(); maxwrite = 50, nround=6)
     
     # If a restart directory is provided, read in the simulation data
@@ -131,7 +128,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
     	#stindex = 0.
         #stindex_prev = 0.
-        resTol = 1e-1
+        resTol = 1e-5
         iterMax = 10
 
         quc_prev[:] = quc[:]       
@@ -212,8 +209,9 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 		 stindex = argmin(ql)
 		# println("stagnation index ",stindex)
 		 #println(stindex)
-		 #error("stop")
-		
+		 if stindex == 140
+		 	error("stop")
+	       	 end
 		@bp
 		 x_u, x_l, su, sl, qustag, qlstag, qustag_prev, qlstag_prev, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, delustag_prev, dellstag_prev, Eustag_iter, Elstag_iter = reconstructGrid(stindex, surf, s, qu, ql, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter)
 	
@@ -305,8 +303,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             wu = [delustag delustag.*(Eustag .+ 1.0)]
             wl = [dellstag dellstag.*(Elstag .+ 1.0)]
 
-            wusoln, i_sepu, resU = FVMIBLgridvar(wu, qustagc, qustagct, qustagx, diff(su), t-dt, t)
-            wlsoln, i_sepl, resL = FVMIBLgridvar(wl, qlstagc, qlstagct, qlstagx, diff(sl), t-dt, t)
+            wusoln, i_sepu = FVMIBLgridvar(wu, qustagc, qustagct, qustagx, diff(su), t-dt, t)
+            wlsoln, i_sepl = FVMIBLgridvar(wl, qlstagc, qlstagct, qlstagx, diff(sl), t-dt, t)
 		@bp
 	    delustag_prev[:] = delustag_iter[:]
             delustag_iter[:] = wusoln[:,1]
@@ -358,7 +356,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 	    #end
             surf.thick_a[:] = newthick[:]
            
-	    bstart = [-0.1260; -0.3516; 0.2843; -0.1015; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0]
+	   bstart = [-0.1260; -0.3516; 0.2843; -0.1015; 0.0; 0.0; 0.0; 0.0]
 
             coef = find_nacaCoef(surf, newthick, bstart)
 
@@ -366,17 +364,17 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             b1 = 0.2969
             b = [b1; coef]
             
-            @. nacath(x) = 5*th*(b[1]*sqrt(x) + b[2]*x + b[3]*x^2 + b[4]*x^3 + b[5]*x^4 + b[6]*x^5 + b[7]*x^6 + b[8]*x^7 + b[9]*x^8+ b[10]*x^9+ b[11]*x^10+ b[12]*x^11)
+	    @. nacath(x) = 5*th*(b[1]*sqrt(x) + b[2]*x + b[3]*x^2 + b[4]*x^3 + b[5]*x^4 + b[6]*x^5 + b[7]*x^6 + b[8]*x^7 + b[9]*x^8)
             
             #Find new shape of airfoil
             for i = 1:surf.ndiv
                 surf.thick[i] = nacath(surf.x[i])
                 surf.thick_slope[i] = ForwardDiff.derivative(nacath, surf.x[i])
             end
-	    println(iter, "   ", res," time: ",t)
+	    println(iter, "   ", res," time: ",t, " stindex: ", stindex)
             
             #Check for convergence
-            res = sum(abs.(resU))/norm(x_u) #  sum(abs.(dellstag_prev .- dellstag_iter))/length(dellstag_prev) #+ sum(abs.(dellstag_prev .- dellstag_iter))
+            res =  sum(abs.(delustag_prev .- delustag_iter)) #+ sum(abs.(dellstag_prev .- dellstag_iter))sum(abs.(resU))/norm(x_u) 
             resL =   sum(abs.(dellstag_prev .- dellstag_iter))
 
             #if iter == iterMax
@@ -396,8 +394,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
             if iter == 3 && mod(istep,10) == 0
                 figure("Edge velocity")
-                plot(surf.x, qu)
-                figure("Edge velocity_lower")
+                plot(surf.x, qu) 
 		plot(surf.x, ql)
 
                 figure("Thickness")

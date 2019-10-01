@@ -236,7 +236,6 @@ function FVMIBLgridvar(w, U, Ut, Ux, dx, t, t_tot)
 
     j1 = zeros(n-1)
     j2 = zeros(n-1)
-    res = 1.
 
     while t < t_tot
 
@@ -282,11 +281,9 @@ function FVMIBLgridvar(w, U, Ut, Ux, dx, t, t_tot)
             i_s = 0
         end
 
-	res = (fL - fR).* ((dt)./(dx)) - dt.*z 
-
     end
 
-    return w, i_s, res
+    return w, i_s
 end
 
 
@@ -296,7 +293,7 @@ function find_nacaCoef(surf::TwoDSurfThick, thick::Array{Float64}, bstart)
 
     b1 = 0.2969
     
-    @. nacath(x, b) = 5*th*(b1*sqrt(x) + b[1]*x + b[2]*x^2 + b[3]*x^3 + b[4]*x^4 + b[5]*x^5 + b[6]*x^6+ b[7]*x^7+ b[8]*x^8+ b[9]*x^9+ b[10]*x^10+ b[11]*x^11)
+    @. nacath(x, b) = 5*th*(b1*sqrt(x) + b[1]*x + b[2]*x^2 + b[3]*x^3 + b[4]*x^4 + b[5]*x^5 + b[6]*x^6+ b[7]*x^7+ b[8]*x^8)
    
     #@. nacath(x, b) = 5*th*(b1*sqrt(x) + b[1]*x + b[2]*x^2 + b[3]*x^3 + b[4]*x^4)
 
