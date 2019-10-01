@@ -183,7 +183,7 @@ include("thick2D/postprocess.jl")         # postprocessing functions
 # low-order 2D thick IBL solvers
 #include("thickCoupled/typedefs.jl")            # type definitions
 include("thickCoupled/calcs.jl")               # calculation functions
-include("thickCoupled/solver2.jl")             # solver methods
+include("thickCoupled/solver3.jl")             # solver methods
 include("thickCoupled/postprocess.jl")         # postprocessing functions
 include("thickCoupled/thickCoupled2.jl")
 
