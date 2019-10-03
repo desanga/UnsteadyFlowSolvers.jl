@@ -150,7 +150,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             wfn[1] = 2*(quc[end]*del_iter[end] - quc[end-1]*del_iter[end-1])/(sqrt(Re)*(surf.x[end] - surf.x[end-1]))
             for i = 2:nw
              #  wfn[i] = (10^(a_wfn - 3.2*(x_w[i] - surf.c)) - 10^(a_wfn - 3.2*(x_w[i] - 1.)))/(x_w[i] - x_w[i-1])
-                wfn[i] = 10^(a_wfn - 10^(a_wfn - 3.2*(x_w[i] - 1.)))
+            wfn[i] = 10^(a_wfn - 10^(a_wfn - 3.2*(x_w[i] - 1.)))
             end
 
             #Source strengths in wake and induced velocity
@@ -174,7 +174,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             surf.uind_l[:] += ind_new_u_l[:]
             surf.wind_l[:] += ind_new_w_l[:]
 
-            qu[:], _ = calc_edgeVel(surf, [curfield.u[1], curfield.w[1]])
+           # qu[:], _ = calc_edgeVel(surf, [curfield.u[1], curfield.w[1]])
+	    qu[:], _, _, _, _, _ = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.w[1]], phi_u, phi_l, dt)
             surf.uind_u[:] -= uind_src[:]
             surf.uind_l[:] -= uind_src[:]
           
@@ -260,13 +261,14 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
                 push!(curfield.tev, TwoDVort(xloc_tev, zloc_tev, tevstr, vcore, 0., 0.))
             end
 
-            if iter == 3 && mod(istep,10) == 0
-                figure(1)
+            if iter == 1 && mod(istep,1) == 0
+                figure("edge velocity")
+		#clf()
                 plot(surf.x, qu)
-                figure(2)
+                figure("thickness")
                 plot(surf.x, surf.thick)
                 axis("equal")
-                figure(3)
+                figure("delta")
                 plot(surf.x[2:end], delu)
 		
             end

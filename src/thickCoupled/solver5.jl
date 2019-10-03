@@ -175,7 +175,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             wfn[1] = 2*(qucavg[end]*delavg[end] - qucavg[end-1]*delavg[end-1])/(sqrt(Re)*(surf.x[end] - surf.x[end-1]))
             for i = 2:nw
              #  wfn[i] = (10^(a_wfn - 3.2*(x_w[i] - surf.c)) - 10^(a_wfn - 3.2*(x_w[i] - 1.)))/(x_w[i] - x_w[i-1])
-                wfn[i] = 10^(a_wfn - 10^(a_wfn - 3.2*(x_w[i] - 1.)))
+            	wfn[i] = 10^(a_wfn - 10^(a_wfn - 3.2*(x_w[i] - 1.)))
             end
             
             #Source strengths in wake and induced velocity
@@ -202,66 +202,6 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 	     qu[:], ql[:], phi_u[:], phi_l[:], cpu[:], cpl[:] = calc_edgeVel_cp(surf, [curfield.u[1], curfield.w[1]], phi_u, phi_l, dt)
 
      
-            vle = qu[1]
-	    #surf.su[:] = su[:]
-
-	    surf.ueU[:] = qu[:] 
-	    surf.ueL[:] = ql[:] 
-        
-    	    if vle > 0.
-        	    
-		 stindex = argmin(ql)
-		# println("stagnation index ",stindex)
-		 #println(stindex)
-		 if stindex == 140
-		 	error("stop")
-	       	 end
-		 
-		 x_u, x_l, su, sl, qustag, qlstag, qustag_prev, qlstag_prev, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, delustag_prev, dellstag_prev, Eustag_iter, Elstag_iter = reconstructGrid(stindex, surf, s, qu, ql, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter)
-	
-		 upper_size = length(x_u) 
-		 lower_size = length(x_l)
-		 #println("maximum upper ",maximum(x_u))
-	   
-		 qustagc = zeros(upper_size-1)
-		 qlstagc = zeros(lower_size-1)
-	   
-		 qustagc_prev = zeros(upper_size-1)	
-		 qlstagc_prev = zeros(lower_size-1)
-
-
-		 qustagx =  zeros(upper_size-1)
-		 qlstagx = zeros(lower_size-1)
-
-		 qustagct =  zeros(upper_size-1)
-		 qlstagct = zeros(lower_size-1)
-
-		 suc =  zeros(upper_size-1)
-		 slc = zeros(lower_size-1)
-	  
-		 suc[1:end] = (su[2:end] + su[1:end-1])./2
-		 slc[1:end] = (sl[2:end] + sl[1:end-1])./2
-
-		 qustagc_prev[:] = qustag_prev[:] 	
-		 qlstagc_prev[:] = qlstag_prev[:]	
-
-	     else
-          	    stindex = argmin(qu) 
-	  	    qustag = qu[stindex+1:end] 
-	  	    qlstag = [reverse(qu[1:stindex]);ql[stindex+1:end]]
-                   
-		    qustlen = length(qustag)
-                    qlstlen = length(qlstag)
-			
-		    surf.qlstlen = qlstlen
-		    surf.qustlen = qustlen
-
-		    xustag = zeros(qustlen)
-		    xlstag = zeros(qlstlen)
-		    error("upper stagnation point on a postive aoa")
-
-	     end
-
             surf.uind_u[:] -= uind_src[:]
             surf.uind_l[:] -= uind_src[:]
           
@@ -270,8 +210,68 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             surf.uind_l[:] -= ind_new_u_l[:]
             surf.wind_l[:] -= ind_new_w_l[:]
             
-            smoothScaledEnd!(x_u, qustag,10)
-            smoothScaledEnd!(x_l, qlstag,10)           
+            smoothScaledEnd!(surf.x, qu,10)
+            smoothScaledEnd!(surf.x, ql,10)           
+
+	vle = qu[1]
+	#surf.su[:] = su[:]
+
+	surf.ueU[:] = qu[:] 
+	surf.ueL[:] = ql[:] 
+
+	if vle > 0.
+		
+	     stindex = argmin(ql)
+	    # println("stagnation index ",stindex)
+	     #println(stindex)
+	     if stindex == 140
+		    error("stop")
+	     end
+	     
+	     x_u, x_l, su, sl, qustag, qlstag, qustag_prev, qlstag_prev, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, delustag_prev, dellstag_prev, Eustag_iter, Elstag_iter = reconstructGrid(stindex, surf, s, qu, ql, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter)
+
+	     upper_size = length(x_u) 
+	     lower_size = length(x_l)
+	     #println("maximum upper ",maximum(x_u))
+
+	     qustagc = zeros(upper_size-1)
+	     qlstagc = zeros(lower_size-1)
+
+	     qustagc_prev = zeros(upper_size-1)	
+	     qlstagc_prev = zeros(lower_size-1)
+
+
+	     qustagx =  zeros(upper_size-1)
+	     qlstagx = zeros(lower_size-1)
+
+	     qustagct =  zeros(upper_size-1)
+	     qlstagct = zeros(lower_size-1)
+
+	     suc =  zeros(upper_size-1)
+	     slc = zeros(lower_size-1)
+
+	     suc[1:end] = (su[2:end] + su[1:end-1])./2
+	     slc[1:end] = (sl[2:end] + sl[1:end-1])./2
+
+	     qustagc_prev[:] = qustag_prev[:] 	
+	     qlstagc_prev[:] = qlstag_prev[:]	
+
+	 else
+		stindex = argmin(qu) 
+		qustag = qu[stindex+1:end] 
+		qlstag = [reverse(qu[1:stindex]);ql[stindex+1:end]]
+	       
+		qustlen = length(qustag)
+		qlstlen = length(qlstag)
+		    
+		surf.qlstlen = qlstlen
+		surf.qustlen = qustlen
+
+		xustag = zeros(qustlen)
+		xlstag = zeros(qlstlen)
+		error("upper stagnation point on a postive aoa")
+
+	 end
 
 
             #Solve the FV problem at cell centres
@@ -319,8 +319,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 	    Eustag_iter[:] = wusoln[:,2]./wusoln[:,1] .- 1.
             Elstag_iter[:] = wlsoln[:,2]./wlsoln[:,1] .- 1
 
-            smoothScaledEnd!(suc, delustag_iter, 10)
-            smoothScaledEnd!(slc, dellstag_iter, 10)	    
+            #smoothScaledEnd!(suc, delustag_iter, 10)
+            #smoothScaledEnd!(slc, dellstag_iter, 10)	    
 	    
 
 	 quc, qlc, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter = reverseReconstructGrid(stindex, surf, qustag, qlstag,  qustagc, qlstagc, qustagc_prev, qlstagc_prev, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, delustag_prev, dellstag_prev, Eustag_iter, Elstag_iter)
@@ -329,6 +329,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 	   #plot(dellstag_iter)		
 @bp
 	    #Find suitable naca coefficients to fit the modified airfoil
+	    smoothScaledEnd!(sc, delu_iter, 10)
+	    smoothScaledEnd!(sc, dell_iter, 10)	    
 
             newthick = zeros(surf.ndiv)
  	    thickconU = zeros(surf.ndiv)
@@ -369,7 +371,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 	    println(iter, "   ", res," time: ",t, " stindex: ", stindex)
             
             #Check for convergence
-            res =  sum(abs.(delustag_prev .- delustag_iter)) #+ sum(abs.(dellstag_prev .- dellstag_iter))sum(abs.(resU))/norm(x_u) 
+            res =  sum(abs.(delu_prev .- delu_iter)) #+ sum(abs.(dellstag_prev .- dellstag_iter))sum(abs.(resU))/norm(x_u) 
             resL =   sum(abs.(dellstag_prev .- dellstag_iter))
 
             #if iter == iterMax
@@ -388,18 +390,23 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             end
 
             if iter == 3 && mod(istep,10) == 0
-                figure("Edge velocity")
-		#clf()
+                figure("Edge velocity", figsize = (3,5))
+		clf()
                 plot(surf.x, qu) 
-		#plot(surf.x, ql)
-                figure("Thickness")
+		plot(surf.x, ql)
+                figure("Thickness", figsize = (3,5))
                 plot(surf.x, surf.thick)
                 axis("equal")
 
-                figure("delta distri bution")
+                figure("delta Higher", figsize = (3,5))
                 plot(surf.x[2:end], delu)
 		figure("delta Lower")
                 plot(surf.x[2:end], dell)
+		
+		#figure("E Higher", figsize = (3,5))
+		#plot(surf.x[2:end], Eu)
+	#	figure("E Lower")
+		#plot(surf.x[2:end], El)
 
 		#error("first plot")
             end
