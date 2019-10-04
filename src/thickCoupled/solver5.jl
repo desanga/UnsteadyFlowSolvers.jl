@@ -61,6 +61,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
     thick_orig[:] = surf.thick[:]
     thick_slope_orig = zeros(surf.ndiv)
     thick_slope_orig[:] = surf.thick_slope[:]
+    cam_slope_orig[:] = surf.cam_slope[:]
 
    #Initialise boundary layer
     delu,dell, Eu, El = initDelE(surf.ndiv-1)
@@ -336,24 +337,32 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
  	    thickconU = zeros(surf.ndiv)
 	    thickconL = zeros(surf.ndiv)
 	    thickUpdate = zeros(surf.ndiv)
+	    
+	    newcamb = zeros(surf.ndiv)
+	    cambConU = zeros(surf.ndiv)
+	    cambConL = zeros(surf.ndiv)
+	    cambUpdate = zeros(surf.ndiv)
 
             
 	    for i = 1:surf.ndiv-1
 
-	    	thickconU[i] =  (quc[i]*delu[i])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[i]).^2))
-	    	thickconL[i] =  (qlc[i]*dell[i])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[i]).^2))
-                thickUpdate[i] = (thickconU[i] + thickconL[i])/2
+	    	conU[i] =  (quc[i]*delu[i])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[i]).^2))
+	    	conL[i] =  (qlc[i]*dell[i])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[i]).^2))
+                thickUpdate[i] = (conU[i] + conL[i])/2
+		
 		newthick[i] = thick_orig[i] + thickUpdate[i] 
+		camUpdate[i] = (conU[i] - conL[i])/2.0
+
             end
             
-	    thickconU[surf.ndiv] =  (quc[surf.ndiv-1]*delu[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv]).^2)) 
-	    thickconL[surf.ndiv] = (qlc[surf.ndiv-1]*dell[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv]).^2))  
+	    conU[surf.ndiv] =  (quc[surf.ndiv-1]*delu[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv]).^2)) 
+	    conL[surf.ndiv] = (qlc[surf.ndiv-1]*dell[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv]).^2))  
 
-            newthick[surf.ndiv] = thick_orig[surf.ndiv] + 0.5*(thickconU[surf.ndiv] + thickconL[surf.ndiv]) 
+            newthick[surf.ndiv] = thick_orig[surf.ndiv] + 0.5*(conU[surf.ndiv] + conL[surf.ndiv]) 
+	    newCamb[surf.ndiv] = thick_orig[surf.ndiv] + 0.5*(conU[surf.ndiv] - conL[surf.ndiv]) 
 
-
-
-	   bstart = [-0.1260; -0.3516; 0.2843; -0.1015; 0.0; 0.0; 0.0; 0.0]
+	    bstart = [-0.1260; -0.3516; 0.2843; -0.1015; 0.0; 0.0; 0.0; 0.0]
+	    bstart_cam = [-0.1260; -0.3516; 0.2843; -0.1015; 0.0; 0.0; 0.0; 0.0]
 
             coef = find_nacaCoef(surf, newthick, bstart)
 
@@ -390,20 +399,20 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             end
 
             if iter == 3 && mod(istep,10) == 0
-                figure("Edge velocity", figsize = (3,5))
+                figure("Edge velocity")
 		clf()
                 plot(surf.x, qu) 
 		plot(surf.x, ql)
-                figure("Thickness", figsize = (3,5))
+                figure("Thickness")
                 plot(surf.x, surf.thick)
                 axis("equal")
 
-                figure("delta Higher", figsize = (3,5))
+                figure("delta Higher")
                 plot(surf.x[2:end], delu)
 		figure("delta Lower")
                 plot(surf.x[2:end], dell)
 		
-		#figure("E Higher", figsize = (3,5))
+		#figure("E Higher")
 		#plot(surf.x[2:end], Eu)
 	#	figure("E Lower")
 		#plot(surf.x[2:end], El)
