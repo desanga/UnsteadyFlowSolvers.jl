@@ -4,7 +4,7 @@ using DelimitedFiles
 
 cleanWrite()
 
-alphadef = ConstDef(5. *pi/180)
+alphadef = ConstDef(10. *pi/180)
 
 hdef = ConstDef(0.)
 
@@ -15,7 +15,7 @@ full_kinem = KinemDef(alphadef, hdef, udef)
 pvt = 0.25
 
 #geometry = "Cylinder"
-geometry = "NACA0004"
+geometry = "NACA0018"
 
 lespcrit = [10.25;]
 

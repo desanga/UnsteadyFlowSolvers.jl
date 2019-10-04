@@ -61,6 +61,10 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
     thick_orig[:] = surf.thick[:]
     thick_slope_orig = zeros(surf.ndiv)
     thick_slope_orig[:] = surf.thick_slope[:]
+
+    cam_orig = zeros(surf.ndiv)
+    cam_slope_orig = zeros(surf.ndiv)
+    cam_orig[:] = surf.cam[:]
     cam_slope_orig[:] = surf.cam_slope[:]
 
    #Initialise boundary layer
@@ -334,51 +338,62 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 	    smoothScaledEnd!(sc, dell_iter, 10)	    
 
             newthick = zeros(surf.ndiv)
- 	    thickconU = zeros(surf.ndiv)
-	    thickconL = zeros(surf.ndiv)
+ 	    conU = zeros(surf.ndiv)
+	    conL = zeros(surf.ndiv)
 	    thickUpdate = zeros(surf.ndiv)
 	    
 	    newcamb = zeros(surf.ndiv)
 	    cambConU = zeros(surf.ndiv)
 	    cambConL = zeros(surf.ndiv)
-	    cambUpdate = zeros(surf.ndiv)
+	    camUpdate = zeros(surf.ndiv)
 
             
 	    for i = 1:surf.ndiv-1
 
-	    	conU[i] =  (quc[i]*delu[i])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[i]).^2))
-	    	conL[i] =  (qlc[i]*dell[i])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[i]).^2))
-                thickUpdate[i] = (conU[i] + conL[i])/2
-		
-		newthick[i] = thick_orig[i] + thickUpdate[i] 
+	    	conU[i] =  (quc[i]*delu[i])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[i] + cam_slope_orig[i]).^2))
+	    	conL[i] =  (qlc[i]*dell[i])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[i] + cam_slope_orig[i]).^2))
+                
+		thickUpdate[i] = (conU[i] + conL[i])/2
 		camUpdate[i] = (conU[i] - conL[i])/2.0
+		
+		newcamb[i] = cam_orig[i] +  camUpdate[i]
+		newthick[i] = thick_orig[i] + thickUpdate[i] 
 
             end
             
-	    conU[surf.ndiv] =  (quc[surf.ndiv-1]*delu[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv]).^2)) 
-	    conL[surf.ndiv] = (qlc[surf.ndiv-1]*dell[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv]).^2))  
+	    conU[surf.ndiv] =  (quc[surf.ndiv-1]*delu[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv] + cam_slope_orig[surf.ndiv]).^2)) 
+	    conL[surf.ndiv] = (qlc[surf.ndiv-1]*dell[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv] + cam_slope_orig[surf.ndiv]).^2))  
 
             newthick[surf.ndiv] = thick_orig[surf.ndiv] + 0.5*(conU[surf.ndiv] + conL[surf.ndiv]) 
-	    newCamb[surf.ndiv] = thick_orig[surf.ndiv] + 0.5*(conU[surf.ndiv] - conL[surf.ndiv]) 
+	    newcamb[surf.ndiv] = cam_orig[surf.ndiv] + 0.5*(conU[surf.ndiv] - conL[surf.ndiv]) 
 
 	    bstart = [-0.1260; -0.3516; 0.2843; -0.1015; 0.0; 0.0; 0.0; 0.0]
-	    bstart_cam = [-0.1260; -0.3516; 0.2843; -0.1015; 0.0; 0.0; 0.0; 0.0]
+	    bstart_cam = [0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0]
 
             coef = find_nacaCoef(surf, newthick, bstart)
+	    coef_cam = find_nacaCamb(surf, newcamb, bstart_cam)
 
             th = parse(Int, surf.coord_file[7:8])/100.
             b1 = 0.2969
             b = [b1; coef]
+	    c = coef_cam
             
 	    @. nacath(x) = 5*th*(b[1]*sqrt(x) + b[2]*x + b[3]*x^2 + b[4]*x^3 + b[5]*x^4 + b[6]*x^5 + b[7]*x^6 + b[8]*x^7 + b[9]*x^8)
+	    @. nacacam(x) = (c[1] + c[2]*x + c[3]*x^2 + c[4]*x^3 + c[5]*x^4 + c[6]*x^5 + c[7]*x^6 + c[8]*x^7)
             
             #Find new shape of airfoil
             for i = 1:surf.ndiv
                 surf.thick[i] = nacath(surf.x[i])
                 surf.thick_slope[i] = ForwardDiff.derivative(nacath, surf.x[i])
+		
+		surf.cam[i] = nacacam(surf.x[i])
+		surf.cam_slope[i] = ForwardDiff.derivative(nacacam, surf.x[i])
             end
 	    println(iter, "   ", res," time: ",t, " stindex: ", stindex)
-            
+	   # if iter ==2
+	   # println(c)
+	   # error("stop here, checkpoint")
+           # end
             #Check for convergence
             res =  sum(abs.(delu_prev .- delu_iter)) #+ sum(abs.(dellstag_prev .- dellstag_iter))sum(abs.(resU))/norm(x_u) 
             resL =   sum(abs.(dellstag_prev .- dellstag_iter))

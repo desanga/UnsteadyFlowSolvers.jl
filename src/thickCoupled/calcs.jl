@@ -304,6 +304,18 @@ function find_nacaCoef(surf::TwoDSurfThick, thick::Array{Float64}, bstart)
     return b
 end
 
+
+function find_nacaCamb(surf::TwoDSurfThick, camb::Array{Float64}, bstart)
+
+@. nacacam(x, b) =  b[1] + b[2]*x + b[3]*x^2 + b[4]*x^3 + b[5]*x^4 + b[6]*x^5 + b[7]*x^6+ b[8]*x^7
+
+fit = curve_fit(nacacam, surf.x[2:end], camb[2:end], bstart)
+
+b = coef(fit)
+
+return b
+end
+
 function find_nacaCoef_extend(surf::TwoDSurfThick, thick::Array{Float64}, bstart)
 
     th = parse(Int, surf.coord_file[7:8])/100.
