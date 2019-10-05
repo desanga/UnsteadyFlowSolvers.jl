@@ -392,7 +392,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 	    println(iter, "   ", res," time: ",t, " stindex: ", stindex)
 	   # if iter ==2
 	   # println(c)
-	   error("stop here, checkpoint")
+	   #error("stop here, checkpoint")
            # end
             #Check for convergence
             res =  sum(abs.(delu_prev .- delu_iter))/length(delu_prev) #+ sum(abs.(dellstag_prev .- dellstag_iter))sum(abs.(resU))/norm(x_u) 
@@ -423,10 +423,12 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
                 plot(surf.x, surf.thick)
                 axis("equal")
 
+
+		clf()
                 figure("delta Higher")
-                plot(surf.x[2:end], delu)
+                plot(suc, delustag_iter)
 		figure("delta Lower")
-                plot(surf.x[2:end], dell)
+                plot(slc, dellstag_iter)
 		
 		#figure("E Higher")
 		#plot(surf.x[2:end], Eu)
