@@ -31,7 +31,6 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
         end
     end
   
-    @bp
 
     vcore = 1.3*dt*surf.c
 
@@ -332,7 +331,6 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 	   
 	   #figure("dell")
 	   #plot(dellstag_iter)		
-@bp
 	    #Find suitable naca coefficients to fit the modified airfoil
 	    smoothScaledEnd!(sc, delu_iter, 10)
 	    smoothScaledEnd!(sc, dell_iter, 10)	    
@@ -367,8 +365,10 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             newthick[surf.ndiv] = thick_orig[surf.ndiv] + 0.5*(conU[surf.ndiv] + conL[surf.ndiv]) 
 	    newcamb[surf.ndiv] = cam_orig[surf.ndiv] + 0.5*(conU[surf.ndiv] - conL[surf.ndiv]) 
 
-	    bstart = [-0.1260; -0.3516; 0.2843; -0.1015; 0.0; 0.0; 0.0; 0.0]
-	    bstart_cam = [0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0; 0.0]
+	    surf.su_i[:] = newcamb[:] 
+
+	    bstart = [-0.1260; -0.3516; 0.2843; -0.1015; 0.0; 0.0]
+	    bstart_cam = [0.0; 0.0; 0.0; 0.0] 
 
             coef = find_nacaCoef(surf, newthick, bstart)
 	    coef_cam = find_nacaCamb(surf, newcamb, bstart_cam)
@@ -378,8 +378,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             b = [b1; coef]
 	    c = coef_cam
             
-	    @. nacath(x) = 5*th*(b[1]*sqrt(x) + b[2]*x + b[3]*x^2 + b[4]*x^3 + b[5]*x^4 + b[6]*x^5 + b[7]*x^6 + b[8]*x^7 + b[9]*x^8)
-	    @. nacacam(x) = (c[1] + c[2]*x + c[3]*x^2 + c[4]*x^3 + c[5]*x^4 + c[6]*x^5 + c[7]*x^6 + c[8]*x^7)
+	    @. nacath(x) = 5*th*(b[1]*sqrt(x) + b[2]*x + b[3]*x^2 + b[4]*x^3 + b[5]*x^4 + b[6]*x^5 + b[7]*x^6)
+	    @. nacacam(x) = (c[1] + c[2]*x + c[3]*x^2 + c[4]*x^3)
             
             #Find new shape of airfoil
             for i = 1:surf.ndiv
@@ -392,15 +392,16 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 	    println(iter, "   ", res," time: ",t, " stindex: ", stindex)
 	   # if iter ==2
 	   # println(c)
-	   # error("stop here, checkpoint")
+	   error("stop here, checkpoint")
            # end
             #Check for convergence
-            res =  sum(abs.(delu_prev .- delu_iter)) #+ sum(abs.(dellstag_prev .- dellstag_iter))sum(abs.(resU))/norm(x_u) 
-            resL =   sum(abs.(dellstag_prev .- dellstag_iter))
+            res =  sum(abs.(delu_prev .- delu_iter))/length(delu_prev) #+ sum(abs.(dellstag_prev .- dellstag_iter))sum(abs.(resU))/norm(x_u) 
+            resL =   sum(abs.(dell_prev[10:end] .- dell_iter[10:end]))
 
             #if iter == iterMax
             if res <= resTol
                 println("converged")
+		#println("Lower res ", resL)
                 delu[:] = delu_iter[:]
                 Eu[:] = Eu_iter[:]
 

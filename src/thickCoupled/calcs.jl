@@ -59,7 +59,7 @@ function calc_Dt(lamb1::Array{Float64,1}, lamb2::Array{Float64,1}, cfl::Float64,
     #@printf(" Max l1: %1.5f, Min l1: %1.5f, Max l2: %1.5f, Min l2: %1.5f \n", maximum(lamb1), minimum(lamb1),maximum(lamb2), minimum(lamb2));
 
     if dt< 0.00001
-        println("Very low dt, singularity     , i_s=", argmin(dti))
+        println("Very low dt, singularity, i_s=", argmin(dti), " number of cells points ", length(dx))
         #dt =0.0005
     end
 
@@ -293,7 +293,7 @@ function find_nacaCoef(surf::TwoDSurfThick, thick::Array{Float64}, bstart)
 
     b1 = 0.2969
     
-    @. nacath(x, b) = 5*th*(b1*sqrt(x) + b[1]*x + b[2]*x^2 + b[3]*x^3 + b[4]*x^4 + b[5]*x^5 + b[6]*x^6+ b[7]*x^7+ b[8]*x^8)
+    @. nacath(x, b) = 5*th*(b1*sqrt(x) + b[1]*x + b[2]*x^2 + b[3]*x^3 + b[4]*x^4 + b[5]*x^5 + b[6]*x^6)
    
     #@. nacath(x, b) = 5*th*(b1*sqrt(x) + b[1]*x + b[2]*x^2 + b[3]*x^3 + b[4]*x^4)
 
@@ -307,7 +307,7 @@ end
 
 function find_nacaCamb(surf::TwoDSurfThick, camb::Array{Float64}, bstart)
 
-@. nacacam(x, b) =  b[1] + b[2]*x + b[3]*x^2 + b[4]*x^3 + b[5]*x^4 + b[6]*x^5 + b[7]*x^6+ b[8]*x^7
+@. nacacam(x, b) =  b[1] + b[2]*x + b[3]*x^2 + b[4]*x^3 
 
 fit = curve_fit(nacacam, surf.x[2:end], camb[2:end], bstart)
 

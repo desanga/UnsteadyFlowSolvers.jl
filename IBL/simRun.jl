@@ -15,7 +15,7 @@ full_kinem = KinemDef(alphadef, hdef, udef)
 pvt = 0.25
 
 #geometry = "Cylinder"
-geometry = "NACA0018"
+geometry = "NACA0012"
 
 lespcrit = [10.25;]
 
@@ -40,10 +40,10 @@ delvort = delNone()
 
 Re = 10000
 
-#mat, surf, curfield = @enter IBL_shape_attached(Re, surf, curfield, nsteps, dtstar, startflag, writeflag, writeInterval, delvort)
+mat, surf, curfield = @enter IBL_shape_attached(Re, surf, curfield, nsteps, dtstar, startflag, writeflag, writeInterval, delvort)
 
 
-mat, surf, curfield = IBL_shape_attached(Re, surf, curfield, nsteps, dtstar, startflag, writeflag, writeInterval, delvort)
+#mat, surf, curfield = IBL_shape_attached(Re, surf, curfield, nsteps, dtstar, startflag, writeflag, writeInterval, delvort)
 
 #mat, surf, curfield = lautat(surf,curfield, nsteps ,dtstar, startflag, writeflag, writeInterval,delvort, maxwrite = 100, nround=6)
 
