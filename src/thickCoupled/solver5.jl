@@ -287,11 +287,14 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 	     qlstagc[1:end] = (qlstag[2:end] + qlstag[1:end-1])./2
            # end
             
-	   qustagx[2:end] = diff(qustagc)./diff(suc)
-           qustagx[1] = qustagx[2]
 
-	   qlstagx[2:end] = diff(qlstagc)./diff(slc)
-           qlstagx[1] = qlstagx[2]
+	    qustagx[1:end] = diff1(suc, qustagc)
+	   #qustagx[2:end] = diff(qustagc)./diff(suc)
+           #qustagx[1] = qustagx[2]
+
+	    qlstagx[1:end] = diff1(slc, qlstagc)
+	   #qlstagx[2:end] = diff(qlstagc)./diff(slc)
+           #qlstagx[1] = qlstagx[2]
 
             #smoothEnd!(qucx, 10)
            
@@ -437,6 +440,11 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
 		#error("first plot")
             end
+
+	    if istep ==25
+		@bp	
+		#error("stop")
+	    end
             
         end
         
@@ -489,4 +497,25 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
 end
 
+function diff1(x::Array{Float64,1}, f::Array{Float64,1})
+
+    fp = zeros(length(x))
+    fpp = zeros(length(x))
+    dx = x[2:end] - x[1:end-1]
+    df = f[2:end] - f[1:end-1]
+
+    fpp[1:end-1] = atan.(df,dx)
+
+    dx1 = x[2:end-1] - x[1:end-2]
+    dx2 = x[3:end] - x[2:end-1]
+    ang = (dx2.*fpp[1:end-2] + dx1.*fpp[2:end-1])./(dx1 .+ dx2)
+    fp[2:end-1] = tan.(ang)
+
+    fp[1] = 2.0*tan.(fpp[1])- fp[2]
+    fp[end] = 2.0*tan.(fpp[end-1])- fp[end-1]
+
+    return fp
+
+
+end
 
