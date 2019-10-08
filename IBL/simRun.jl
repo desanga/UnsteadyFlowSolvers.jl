@@ -4,7 +4,7 @@ using DelimitedFiles
 
 cleanWrite()
 
-alphadef = ConstDef(5. *pi/180)
+alphadef = ConstDef(6. *pi/180)
 
 hdef = ConstDef(0.)
 

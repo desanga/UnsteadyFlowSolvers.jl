@@ -97,7 +97,7 @@ function reverseReconstructGrid(stgIndex::Int64, surf::TwoDSurfThick, qustag::Ar
 	El_iter[:] = [reverse(Eustag_iter[1:stgIndex]);Elstag_iter[2:end]]
 
 
-	return quc, qlc, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter
+	return quc, qlc, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_prev, Eu_iter, El_iter
 
 	end
 

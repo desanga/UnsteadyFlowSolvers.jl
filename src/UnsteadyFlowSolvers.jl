@@ -37,7 +37,7 @@ using Interpolations
 
 import QuadGK: quadgk
 
-import LinearAlgebra: det
+import LinearAlgebra: det, norm
 
 import Roots: find_zero, Bisection
 

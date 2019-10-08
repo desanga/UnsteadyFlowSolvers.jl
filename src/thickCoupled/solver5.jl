@@ -133,8 +133,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
     	#stindex = 0.
         #stindex_prev = 0.
-        resTol = 1e-5
-        iterMax = 10
+        resTol = 1e-3
+        iterMax = 20
 
         quc_prev[:] = quc[:]       
         qlc_prev[:] = qlc[:]       
@@ -142,7 +142,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 #	ql_prev[:] = ql[:]
         
         #while (iter < iterMax)
-        while res > resTol
+        while res > resTol  
             
             iter += 1
 
@@ -323,18 +323,18 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             dellstag_prev[:] = dellstag_iter[:]
             dellstag_iter[:] = wlsoln[:,1]
 
+clf()
 	    Eustag_iter[:] = wusoln[:,2]./wusoln[:,1] .- 1.
             Elstag_iter[:] = wlsoln[:,2]./wlsoln[:,1] .- 1
 
             #smoothScaledEnd!(suc, delustag_iter, 10)
             #smoothScaledEnd!(slc, dellstag_iter, 10)	    
-	    
-
-	 quc, qlc, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_iter, Eu_iter, El_iter = reverseReconstructGrid(stindex, surf, qustag, qlstag,  qustagc, qlstagc, qustagc_prev, qlstagc_prev, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, delustag_prev, dellstag_prev, Eustag_iter, Elstag_iter)
 	   
-	   #figure("dell")
-	   #plot(dellstag_iter)		
+
+	 quc, qlc, quc_prev, qlc_prev, delu, dell, Eu, El, delu_iter, dell_iter, delu_prev, dell_prev, Eu_iter, El_iter = reverseReconstructGrid(stindex, surf, qustag, qlstag,  qustagc, qlstagc, qustagc_prev, qlstagc_prev, delustag, dellstag, Eustag, Elstag, dellstag_iter, delustag_iter, delustag_prev, dellstag_prev, Eustag_iter, Elstag_iter)
+	   
 	    #Find suitable naca coefficients to fit the modified airfoil
+
 	    smoothScaledEnd!(sc, delu_iter, 10)
 	    smoothScaledEnd!(sc, dell_iter, 10)	    
 
@@ -398,13 +398,15 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 	   #error("stop here, checkpoint")
            # end
             #Check for convergence
-            res =  sum(abs.(delu_prev .- delu_iter))/length(delu_prev) #+ sum(abs.(dellstag_prev .- dellstag_iter))sum(abs.(resU))/norm(x_u) 
-            resL =   sum(abs.(dell_prev[10:end] .- dell_iter[10:end]))
+            #res =  sum(abs.(delu_prev .- delu_iter))/norm(delustag_iter)  
+	    resU =  norm(delu_prev .- delu_iter) 
+            resL =   norm(dell_prev .- dell_iter)
+
+	    res = 0.5*(resU + resL)
 
             #if iter == iterMax
-            if res <= resTol
+            if res <= resTol 
                 println("converged")
-		#println("Lower res ", resL)
                 delu[:] = delu_iter[:]
                 Eu[:] = Eu_iter[:]
 
@@ -417,28 +419,25 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
                 push!(curfield.tev, TwoDVort(xloc_tev, zloc_tev, tevstr, vcore, 0., 0.))
             end
 
-            if iter == 3 && mod(istep,10) == 0
-                figure("Edge velocity")
-		clf()
-                plot(surf.x, qu) 
+            if iter == 4 && mod(istep,10) == 0
+                
+		figure(1, dpi = 60)
+		plot(surf.x, qu) 
 		plot(surf.x, ql)
-                figure("Thickness")
+                
+		figure(2, dpi = 60)
                 plot(surf.x, surf.thick)
                 axis("equal")
 
 
-		clf()
-                figure("delta Higher")
+		
+                figure(3, dpi = 60)
                 plot(suc, delustag_iter)
-		figure("delta Lower")
+		
+		figure(4, dpi = 60)
                 plot(slc, dellstag_iter)
 		
-		#figure("E Higher")
-		#plot(surf.x[2:end], Eu)
-	#	figure("E Lower")
-		#plot(surf.x[2:end], El)
 
-		#error("first plot")
             end
 
 	    if istep ==25
