@@ -1,3 +1,4 @@
+using LinearAlgebra
 function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, nsteps::Int64 = 300, dtstar::Float64 = 0.015, startflag = 0, writeflag = 0, writeInterval = 1000., delvort = delNone(); maxwrite = 50, nround=6)
     
     # If a restart directory is provided, read in the simulation data
