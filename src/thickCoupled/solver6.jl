@@ -323,7 +323,6 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             dellstag_prev[:] = dellstag_iter[:]
             dellstag_iter[:] = wlsoln[:,1]
 
-clf()
 	    Eustag_iter[:] = wusoln[:,2]./wusoln[:,1] .- 1.
             Elstag_iter[:] = wlsoln[:,2]./wlsoln[:,1] .- 1
 
@@ -415,35 +414,38 @@ clf()
 		
 
 		surf.deltaU[2:end] = delu[:]
+		println("E_upper min : ", minimum(Eu_iter) ," E_upper max : ", maximum(Eu_iter))
+		println("E min : ", minimum(El_iter) ," E max : ", maximum(El_iter))
+
 		#surf.ueU[:] = qu[:] 
                 push!(curfield.tev, TwoDVort(xloc_tev, zloc_tev, tevstr, vcore, 0., 0.))
             end
 
             if iter == 4 && mod(istep,10) == 0
                 
-		figure(1, dpi = 60)
-		plot(surf.x, qu) 
-		plot(surf.x, ql)
-                
-		figure(2, dpi = 60)
-                plot(surf.x, surf.thick)
-                axis("equal")
-
-
-		
-                figure(3, dpi = 60)
-                plot(suc, delustag_iter)
-		
-		figure(4, dpi = 60)
-                plot(slc, dellstag_iter)
+		    figure("Edge velocities"1)
+		    plot(surf.x, qu) 
+		    plot(surf.x, ql)
+		     
+		    figure("Thick")
+		    plot(surf.x, surf.thick)
+		    axis("equal")
+		    
+		    figure("Upper displacement thickness")
+		    plot(suc, delustag_iter)
+		    
+		    figure("Lower displacement thickness")
+		    plot(slc, dellstag_iter)
 		
 
             end
 
-	    if istep ==25
-		@bp	
-		#error("stop")
-	    end
+	    #if Eu_iter < || El_iter < 
+
+	   # if istep ==50
+	   #     #@bp	
+	   #     error("stop")
+	   # end
             
         end
         

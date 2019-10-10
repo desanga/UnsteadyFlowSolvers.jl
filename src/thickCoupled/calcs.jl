@@ -186,6 +186,10 @@ function calc_eigen(E::Array{Float64}, F::Array{Float64},
             lamb1[i] = temp
         end
     end
+    
+    if minimum(E) .< 0.
+	println("Negative E : ", minimum(E), " length of E ", length(E))
+    end
 
     return lamb1, lamb2
 end
