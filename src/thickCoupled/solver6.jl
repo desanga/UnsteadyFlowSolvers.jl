@@ -135,6 +135,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
         #stindex_prev = 0.
         resTol = 1e-3
         iterMax = 20
+	isSep_upper = false
+	isSep_lower = false
 
         quc_prev[:] = quc[:]       
         qlc_prev[:] = qlc[:]       
@@ -314,8 +316,8 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
             wu = [delustag delustag.*(Eustag .+ 1.0)]
             wl = [dellstag dellstag.*(Elstag .+ 1.0)]
 
-            wusoln, i_sepu = FVMIBLgridvar(wu, qustagc, qustagct, qustagx, diff(su), t-dt, t)
-            wlsoln, i_sepl = FVMIBLgridvar(wl, qlstagc, qlstagct, qlstagx, diff(sl), t-dt, t)
+            wusoln, i_sepu, isSep_upper = FVMIBLgridvar(wu, qustagc, qustagct, qustagx, diff(su), t-dt, t, isSep_upper)
+            wlsoln, i_sepl, isSep_lower = FVMIBLgridvar(wl, qlstagc, qlstagct, qlstagx, diff(sl), t-dt, t, isSep_lower)
 	    
 	    delustag_prev[:] = delustag_iter[:]
             delustag_iter[:] = wusoln[:,1]
@@ -423,7 +425,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
             if iter == 4 && mod(istep,10) == 0
                 
-		    figure("Edge velocities"1)
+		    figure("Edge velocities")
 		    plot(surf.x, qu) 
 		    plot(surf.x, ql)
 		     
