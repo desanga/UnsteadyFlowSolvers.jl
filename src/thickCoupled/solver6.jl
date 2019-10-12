@@ -423,7 +423,7 @@ function IBL_shape_attached(Re, surf::TwoDSurfThick, curfield::TwoDFlowField, ns
 
             if iter == 4 && mod(istep,10) == 0
                 
-		    figure("Edge velocities"1)
+		    figure("Edge velocities")
 		    plot(surf.x, qu) 
 		    plot(surf.x, ql)
 		     
