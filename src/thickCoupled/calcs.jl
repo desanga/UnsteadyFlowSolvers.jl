@@ -49,7 +49,7 @@ function correlate(w)
     return del, E, F ,B, S, dfde
 end
 
-function calc_Dt(lamb1::Array{Float64,1}, lamb2::Array{Float64,1}, cfl::Float64, dx::Array{Float64})
+function calc_Dt(lamb1::Array{Float64,1}, lamb2::Array{Float64,1}, cfl::Float64, dx::Array{Float64}, isSep::Bool)
 
     # calculate time step values based on eigenvalues
 
@@ -59,6 +59,7 @@ function calc_Dt(lamb1::Array{Float64,1}, lamb2::Array{Float64,1}, cfl::Float64,
     #@printf(" Max l1: %1.5f, Min l1: %1.5f, Max l2: %1.5f, Min l2: %1.5f \n", maximum(lamb1), minimum(lamb1),maximum(lamb2), minimum(lamb2));
 
     if dt< 0.00001
+        isSep = true
         println("Very low dt, singularity, i_s=", argmin(dti), " number of cells points ", length(dx))
         #dt =0.0005
     end
@@ -232,7 +233,7 @@ function separationJ(lamb1::Array{Float64,1}, lamb2::Array{Float64,1}, dt::Float
 end
 
 
-function FVMIBLgridvar(w, U, Ut, Ux, dx, t, t_tot)
+function FVMIBLgridvar(w, U, Ut, Ux, dx, t, t_tot, isSep)
 
     n = length(dx)
 
@@ -287,7 +288,7 @@ function FVMIBLgridvar(w, U, Ut, Ux, dx, t, t_tot)
 
     end
 
-    return w, i_s
+    return w, i_s, isSep
 end
 
 
