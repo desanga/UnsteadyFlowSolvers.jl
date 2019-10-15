@@ -49,7 +49,7 @@ function correlate(w)
     return del, E, F ,B, S, dfde
 end
 
-function calc_Dt(lamb1::Array{Float64,1}, lamb2::Array{Float64,1}, cfl::Float64, dx::Array{Float64}, isSep::Bool)
+function calc_Dt(lamb1::Array{Float64,1}, lamb2::Array{Float64,1}, cfl::Float64, dx::Array{Float64}, isSep)
 
     # calculate time step values based on eigenvalues
 
@@ -250,7 +250,7 @@ function FVMIBLgridvar(w, U, Ut, Ux, dx, t, t_tot, isSep)
         fL, fR, UipL ,UipR, FFipL, FFipR, dfdeipL, dfdeipR, wipL, wipR = fluxReconstruction(w,  U, FF, dfde, del, E)
 
         lamb1 ,lamb2 = calc_eigen(E, FF, dfde, U)
-        dt = calc_Dt(lamb1 ,lamb2, 0.5, dx)
+        dt = calc_Dt(lamb1 ,lamb2, 0.5, dx, isSep)
 
         if t + dt > t_tot
             dt = t_tot - t

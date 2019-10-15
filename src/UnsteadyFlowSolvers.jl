@@ -152,7 +152,8 @@ export
     find_nacaCoef,
     smoothScaledEnd!,
     reconstructGrid,
-    reverseReconstructGrid
+    reverseReconstructGrid,
+    diff1
 
 
 
