@@ -4,6 +4,7 @@ using ForwardDiff
 using PyPlot
 
 cleanWrite()
+close("all")
 
 #alphadef = EldRampReturnDef(45. *pi/180, 0.2, 11, 1.0)
 alphadef = ConstDef(0. *pi/180)
@@ -16,7 +17,7 @@ full_kinem = KinemDef(alphadef, hdef, udef)
 
 pvt = 0.0
 
-geometry = "NACA0099"
+geometry = "NACA0018"
 
 lespcrit = [10.25;]
 
@@ -62,8 +63,8 @@ pop!(curfield.tev)
 qu_base, ql_base, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.w[1]], phi_u, phi_l, dt)
 
 i_sep = 47
-xtev = surf.bnd_x_u[i_sep+3] + 0.5*dt
-ztev = surf.bnd_z_u[i_sep+3] + 0.5*dt
+xtev = surf.bnd_x_u[i_sep-3] + 0.5*dt
+ztev = surf.bnd_z_u[i_sep+3] 
 # ztevl = surf.bnd_z_l[surf.ndiv]
 vcore = 0.02
 tevstr = 0.05
@@ -179,6 +180,6 @@ figure("thickness")
 plot(surf.bnd_x_u, surf.bnd_z_u)
 plot(surf.bnd_x_u[i_sep], surf.bnd_z_u[i_sep], "*")
 plot(xtev, ztev, "bo")
-
+axis("equal")
 
 
