@@ -1,5 +1,7 @@
-push!(LOAD_PATH,"../UnsteadyFlowSolvers.jl/src/")
+push!(LOAD_PATH,"../src/")
 using UnsteadyFlowSolvers
+using ForwardDiff
+using PyPlot
 
 cleanWrite()
 
@@ -51,7 +53,7 @@ t = 0.01
 dt = 0.005
 Re = 10000
 cam_slope_orig = zeros(surf.ndiv)
-
+isSep = false
 
 
 pop!(curfield.tev)
@@ -60,12 +62,12 @@ pop!(curfield.tev)
 qu_base, ql_base, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.w[1]], phi_u, phi_l, dt)
 
 i_sep = 47
-xtev = surf.bnd_x_u[i_sep-3]+0.5*dt
-ztev = surf.bnd_z_u[i_sep+3]
+xtev = surf.bnd_x_u[i_sep+3] + 0.5*dt
+ztev = surf.bnd_z_u[i_sep+3] + 0.5*dt
 # ztevl = surf.bnd_z_l[surf.ndiv]
 vcore = 0.02
 tevstr = 0.05
-tev1 = TwoDVort(xtev, ztev, tevstr, vcore, 0., 0.)
+tev1 = TwoDVort(xtev, ztev, -tevstr, vcore, 0., 0.)
 # tev2 = TwoDVort(xtev, ztevl, -tevstr, vcore, 0., 0.)
 push!(curfield.tev, tev1)
 # push!(curfield.tev, tev2)
@@ -79,9 +81,13 @@ qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.
 smoothScaledEnd!(surf.x, qu,10)
 
 thick_slope_orig = zeros(surf.ndiv)
-delu,dell, Eu, El = initDelE(surf.ndiv-1)
+delu, dell, Eu, El = initDelE(surf.ndiv-1)
+delu_prev =  zeros(length(delu))
+Eu_prev = zeros(length(delu))
 thick_slope_orig[:] = surf.thick_slope[:] 
 cam_slope_orig[:] = surf.cam_slope[:]
+thick_orig = zeros(surf.ndiv) 
+thick_orig[:] = surf.thick[:] 
 
 s = zeros(surf.ndiv)
 
@@ -105,10 +111,17 @@ quc = (qu[1:end-1] + qu[2:end])/2.0
 
 qux = diff1(sc, quc)
 
-qut = 0.
+qut = zeros(surf.ndiv-1)
+
 
 wu = [delu delu.*(Eu .+ 1.0)] 
-wusoln, i_sepu = FVMIBLgridvar(wu, quc, qut, qux, diff(sc), t-dt, t)
+#error("stop")
+wusoln, i_sepu, isSep = FVMIBLgridvar(wu, quc, qut, qux, diff(s), t-dt, t, isSep)
+
+delu_prev[:] = delu[:]
+delu[:] = wusoln[:,1]
+Eu[:] = wusoln[:,2]./wusoln[:,1] .- 1.
+
 
 smoothScaledEnd!(sc, delu, 10)
 
@@ -131,7 +144,7 @@ camUpdate = zeros(surf.ndiv)
   
   end
 
-con[surf.ndiv] =  (quc[surf.ndiv-1]*delu[surf.ndiv-1])/(sqrt(Re)*sqrt(1.+ (thick_slope_orig[surf.ndiv] + cam_slope_orig[surf.ndiv]).^2))
+con[surf.ndiv] =  (quc[surf.ndiv-1]*delu[surf.ndiv-1])/(sqrt(Re)*sqrt(1. + (thick_slope_orig[surf.ndiv] + cam_slope_orig[surf.ndiv]).^2))
 
  newthick[surf.ndiv] = thick_orig[surf.ndiv] + con[surf.ndiv]
 
@@ -151,12 +164,21 @@ b = [b1; coef]
 
 qu, ql, phi_u, phi_l, cpu, cpl = calc_edgeVel_cp(surf, [curfield.u[1]; curfield.w[1]], phi_u, phi_l, dt)
 
+figure("Edge velocity")
+plot(surf.x, qu_base, label= "Base")
+plot(surf.x, qu, label = "Pair")
+legend()
+
+figure("Slope of velocity")
+plot(surf.x[2:end], diff(qu_base)./diff(surf.x), label = "Base")
+plot(surf.x[2:end], diff(qu)./diff(surf.x), label = "Pair")
+legend()
 
 
-figure(1)
-plot(surf.x, qu_base)
-plot(surf.x, qu)
+figure("thickness")
+plot(surf.bnd_x_u, surf.bnd_z_u)
+plot(surf.bnd_x_u[i_sep], surf.bnd_z_u[i_sep], "*")
+plot(xtev, ztev, "bo")
 
-figure(2)
-plot(surf.x[2:end], diff(qu_base)./diff(surf.x))
-plot(surf.x[2:end], diff(qu)./diff(surf.x))
+
+
